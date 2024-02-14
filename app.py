@@ -11,13 +11,14 @@ app = Flask(__name__)
 
 # 配置上传文件夹和允许上传的文件类型
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'csv'}
+ALLOWED_EXTENSIONS = {'csv', 'xlsx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -39,11 +40,29 @@ def upload_file():
     return render_template('upload.html')
 
 
+def adjacency_to_edgelist(adj_matrix_df):
+    edges = []
+    for i, row in adj_matrix_df.iterrows():
+        for j, weight in row.items():  # Changed from iteritems() to items()
+            if weight != 0 and i != j:  # Assuming no self-loops and non-zero weight
+                edges.append((i, j, weight))
+    return pd.DataFrame(edges, columns=['Source', 'Target', 'Weight'])
+
+
+
 @app.route('/show_graph/<filename>')
 def network_graph(filename):
     filepath = os.path.join(UPLOAD_FOLDER, filename)
-    # 读取CSV文件创建图
-    df = pd.read_csv(filepath)
+    _, file_extension = os.path.splitext(filename)
+
+    if file_extension.lower() == '.csv':
+        df = pd.read_csv(filepath)
+    elif file_extension.lower() == '.xlsx':
+        adj_matrix_df = pd.read_excel(filepath, index_col=0)
+        df = adjacency_to_edgelist(adj_matrix_df)
+    else:
+        raise ValueError("Unsupported file type.")
+
     G = nx.Graph()
     for _, row in df.iterrows():
         G.add_edge(row['Source'], row['Target'], weight=row['Weight'])
