@@ -83,7 +83,7 @@ def network_graph(filename):
 
     # 绘图
     fig, ax = plt.subplots(figsize=(5, 3))
-    pos = nx.spring_layout(G, k=0.15, seed=42)
+    pos = nx.spring_layout(G, k=0.15, seed=4572321)
     node_color = [community_map[n] for n in G.nodes()]
     node_size = [centrality[n] * 3000 for n in G.nodes()]
     nx.draw_networkx(
@@ -97,6 +97,20 @@ def network_graph(filename):
         ax=ax,
         font_size=3
     )
+    # 设置标题和图例说明
+    font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
+    font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
+    ax.set_title("PageRank and Louvain", fontdict=font_title)
+
+    # 添加图例说明
+    ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes,
+            fontdict=font_legend)
+    ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes,
+            fontdict=font_legend)
+
+    # 优化边界和标签可读性
+    ax.margins(0.1, 0.05)
+    fig.tight_layout()
     plt.axis("off")
 
     # 将绘制的图转换为Base64编码的图片
