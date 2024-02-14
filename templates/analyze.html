@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analyze Network</title>
+</head>
+<body>
+    <h1>File uploaded successfully!</h1>
+    <h2>Click the button below to choose the algorithm</h2>
+    <!-- 添加JavaScript代码来处理点击事件和显示消息 -->
+    <script type="text/javascript">
+        function handleAnalyze() {
+            var analyzeButton = document.getElementById('analyzeButton');
+            analyzeButton.value = 'Please wait...';
+            analyzeButton.disabled = true;
+            window.location.href = "{{ url_for('network_graph', filename=filename) }}";
+        }
+    </script>
+    <form action="">
+        <input type="button" id="analyzeButton" value="Centrality and Community detection" onclick="handleAnalyze()">
+    </form>
+</body>
+</html>
