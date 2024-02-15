@@ -13,8 +13,13 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-    <!-- 显示图像 -->
-    <img src="data:image/png;base64,{{ plot_url }}">
+
+    <!-- 显示交互式图像 -->
+    {% if graph_html_path %}
+        <iframe src="{{ url_for('static', filename=graph_html_path.split('/')[-1]) }}" height="800" width="100%"></iframe>
+    {% else %}
+        <p>No graph to display.</p>
+    {% endif %}
     <br>
     <a href="{{ url_for('upload_file') }}">Upload another file</a>
 
