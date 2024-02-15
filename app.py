@@ -123,6 +123,84 @@ def network_graph(filename):
     return render_template('index.html', plot_url=plot_url)
 
 
+@app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
+def show_top_communities(filename):
+    if request.method == 'POST':
+        top_n = int(request.form.get('topN', 10))  # 默认为Top 10，如果用户没有输入值
+    else:
+        top_n = 10  # 如果是GET请求，也使用默认值Top 10
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    _, file_extension = os.path.splitext(filename)
+
+    if file_extension.lower() == '.csv':
+        df = pd.read_csv(filepath)
+    elif file_extension.lower() == '.xlsx':
+        adj_matrix_df = pd.read_excel(filepath, index_col=0)
+        df = adjacency_to_edgelist(adj_matrix_df)
+    else:
+        return "Unsupported file type.", 400
+
+    G = nx.Graph()
+    for _, row in df.iterrows():
+        G.add_edge(row['Source'], row['Target'], weight=row['Weight'])
+
+    low_degree_nodes = [node for node, degree in dict(G.degree()).items() if degree < 5]
+    G.remove_nodes_from(low_degree_nodes)
+
+    centrality = nx.pagerank(G, weight='weight')
+
+    community_map = {}
+    communities = nx.community.louvain_communities(G, weight='weight')
+    for i, community in enumerate(communities):
+        for node in community:
+            community_map[node] = i
+
+    # 根据用户输入选择Top N个社区
+    community_scores = {i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
+    top_communities = sorted(community_scores, key=community_scores.get, reverse=True)[:top_n]
+
+    # 为前10个社区创建子图
+    top_nodes = set().union(*(communities[i] for i in top_communities))
+    H = G.subgraph(top_nodes)
+
+    # 绘图设置，确保与network_graph一致
+    fig, ax = plt.subplots(figsize=(5, 3))
+    pos = nx.spring_layout(H, k=0.15, seed=4572321)
+    node_color = [community_map[n] for n in H.nodes()]
+    node_size = [centrality[n] * 3000 for n in H.nodes()]
+    nx.draw_networkx(
+        H,
+        pos=pos,
+        with_labels=True,
+        node_color=node_color,
+        node_size=node_size,
+        edge_color="gainsboro",
+        alpha=0.4,
+        ax=ax,
+        font_size=3
+    )
+
+    # 标题和图例说明设置
+    font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
+    font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
+    ax.set_title("Top 10 Communities Analysis", fontdict=font_title)
+    ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes, fontdict=font_legend)
+    ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes, fontdict=font_legend)
+
+    ax.margins(0.1, 0.05)
+    fig.tight_layout()
+    plt.axis("off")
+
+    img = BytesIO()
+    plt.savefig(img, format='png', dpi=300)
+    plt.close()
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode('utf8')
+
+    return render_template('index.html', plot_url=plot_url)
+
+
+
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
