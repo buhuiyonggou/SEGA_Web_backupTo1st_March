@@ -9,5 +9,16 @@
     <img src="data:image/png;base64,{{ plot_url }}">
     <br>
     <a href="{{ url_for('upload_file') }}">Upload another file</a>
+
+    <!-- Print filename for debugging -->
+    <p>Current Filename: {{ filename }}</p>
+
+    <!-- 添加表单以允许用户输入要删除的节点ID -->
+    <h2>Delete a node and its edges</h2>
+    <form action="{{ url_for('delete_node', filename=filename) }}" method="post">
+        <label for="nodeId">Enter the ID of the node to delete:</label>
+        <input type="text" id="nodeId" name="nodeId" required>
+        <input type="submit" value="Delete Node">
+    </form>
 </body>
 </html>
