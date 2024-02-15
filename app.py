@@ -84,7 +84,7 @@ def network_graph(filename):
 
     # 绘图
     fig, ax = plt.subplots(figsize=(5, 3))
-    pos = nx.spring_layout(G, k=0.15, seed=4572321)
+    pos = nx.spring_layout(G, k=0.5, seed=4572321)
     node_color = [community_map[n] for n in G.nodes()]
     node_size = [centrality[n] * 3000 for n in G.nodes()]
     nx.draw_networkx(
@@ -166,7 +166,7 @@ def show_top_communities(filename):
 
     # 绘图设置，确保与network_graph一致
     fig, ax = plt.subplots(figsize=(5, 3))
-    pos = nx.spring_layout(H, k=0.15, seed=4572321)
+    pos = nx.spring_layout(H, k=0.5, seed=4572321)
     node_color = [community_map[n] for n in H.nodes()]
     node_size = [centrality[n] * 3000 for n in H.nodes()]
     nx.draw_networkx(
@@ -184,7 +184,7 @@ def show_top_communities(filename):
     # 标题和图例说明设置
     font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
     font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
-    ax.set_title("Top 10 Communities Analysis", fontdict=font_title)
+    ax.set_title("Top N Communities Analysis", fontdict=font_title)
     ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes, fontdict=font_legend)
     ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes, fontdict=font_legend)
 
@@ -233,7 +233,7 @@ def delete_node(filename):
 
     # 绘图
     fig, ax = plt.subplots(figsize=(5, 3))
-    pos = nx.spring_layout(G, k=0.15, seed=4572321)
+    pos = nx.spring_layout(G, k=0.5, seed=4572321)
     node_color = [community_map.get(n, 0) for n in G.nodes()]
     node_size = [centrality.get(n, 0) * 3000 for n in G.nodes()]
     nx.draw_networkx(
@@ -249,9 +249,22 @@ def delete_node(filename):
     )
 
     # 设置标题和图例说明
-    set_graph_title_and_legend(ax, fig)
+    font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
+    font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
+    ax.set_title("PageRank and Louvain", fontdict=font_title)
 
-    # 将绘制的图转换为Base64编码的图片并展示
+    # 添加图例说明
+    ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes,
+            fontdict=font_legend)
+    ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes,
+            fontdict=font_legend)
+
+    # 优化边界和标签可读性
+    ax.margins(0.1, 0.05)
+    fig.tight_layout()
+    plt.axis("off")
+
+    # 将绘制的图转换为Base64编码的图片
     img = BytesIO()
     plt.savefig(img, format='png', dpi=300)
     plt.close()

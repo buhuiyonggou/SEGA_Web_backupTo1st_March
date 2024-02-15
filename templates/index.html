@@ -15,10 +15,20 @@
 
     <!-- 添加表单以允许用户输入要删除的节点ID -->
     <h2>Delete a node and its edges</h2>
-    <form action="{{ url_for('delete_node', filename=filename) }}" method="post">
+    <form action="{{ url_for('delete_node', filename=filename) }}" method="post" onsubmit="disableButtonsAndShowWaitMessage()">
         <label for="nodeId">Enter the ID of the node to delete:</label>
         <input type="text" id="nodeId" name="nodeId" required>
         <input type="submit" value="Delete Node">
     </form>
+
+    <script type="text/javascript">
+        function disableButtonsAndShowWaitMessage() {
+            var submitButtons = document.querySelectorAll('input[type="submit"], input[type="button"]');
+            for (var i = 0; i < submitButtons.length; i++) {
+                submitButtons[i].value = 'Please wait...';
+                submitButtons[i].disabled = true;
+            }
+        }
+    </script>
 </body>
 </html>
