@@ -5,6 +5,14 @@
 </head>
 <body>
     <h1>Centrality and Community detection</h1>
+    <!-- 显示闪现消息 -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div style="color: red;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     <!-- 显示图像 -->
     <img src="data:image/png;base64,{{ plot_url }}">
     <br>
