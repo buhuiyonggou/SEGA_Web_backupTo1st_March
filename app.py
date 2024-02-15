@@ -6,6 +6,7 @@ from io import BytesIO
 import base64
 import os
 from werkzeug.utils import secure_filename
+from pyvis.network import Network
 
 app = Flask(__name__)
 
@@ -119,6 +120,42 @@ def save_fig_to_base64(fig):
     return base64.b64encode(img.getvalue()).decode('utf8')
 
 
+def draw_graph_with_pyvis(G, centrality, community_map):
+    net = Network(height="750px", width="100%", bgcolor="#ffffff", font_color="black")
+
+    # 根据 centrality 值对节点进行排序，选择前 100 个
+    top_nodes = sorted(centrality, key=centrality.get, reverse=True)[:100]
+
+    # 准备社区颜色
+    community_colors = ["#FFA07A", "#20B2AA", "#778899", "#9370DB", "#FFD700", "#FF6347", "#3CB371", "#F08080",
+                        "#00FA9A", "#BDB76B", "#FF00FF"]
+
+    # 添加前 100 个节点到 Pyvis 网络，并设置颜色
+    for node in top_nodes:
+        color = community_colors[community_map[node] % len(community_colors)]
+        net.add_node(node, title=str(node), size=centrality[node] * 1000, group=community_map[node], color=color)
+
+    # 只添加前 500 个节点之间的边
+    for source, target in G.edges(top_nodes):
+        if source in top_nodes and target in top_nodes:
+            net.add_edge(source, target)
+
+    # 优化布局参数
+    net.options.physics.barnesHut.springLength = 2000
+    net.options.physics.barnesHut.springConstant = 0.02
+    net.options.physics.barnesHut.damping = 0.09
+    net.options.physics.barnesHut.centralGravity = 0.2
+    net.options.physics.barnesHut.gravitationalConstant = -1000
+    net.options.physics.maxVelocity = 5
+    net.options.physics.minVelocity = 0.1
+
+    # 指定生成的 HTML 文件路径
+    filepath = os.path.join('static', 'graph.html')
+    net.write_html(filepath)
+
+    return 'graph.html'
+
+
 @app.route('/show_graph/<filename>')
 def network_graph(filename):
     filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -130,10 +167,11 @@ def network_graph(filename):
 
     centrality, community_map = compute_centrality_and_communities(G)
 
-    fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
-    plot_url = save_fig_to_base64(fig)
+    # 使用 Pyvis 画图
+    graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
-    return render_template('index.html', plot_url=plot_url, filename=filename)
+    # 将 HTML 文件路径传递给模板，而不是图像的 base64 编码
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename)
 
 
 @app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
