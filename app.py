@@ -44,7 +44,7 @@ def network_graph(filename):
 
     _, G = load_graph_data(filepath, file_extension)
 
-    remove_low_degree_nodes(G)
+    # remove_low_degree_nodes(G)
 
     centrality, community_map = compute_centrality_and_communities(G)
 
@@ -69,7 +69,7 @@ def show_top_communities(filename):
     _, file_extension = os.path.splitext(filename)
     _, G = load_graph_data(filepath, file_extension)
 
-    remove_low_degree_nodes(G)
+    # remove_low_degree_nodes(G)
 
     centrality, community_map = compute_centrality_and_communities(G)
     communities = nx.community.louvain_communities(G, weight='weight')
@@ -105,13 +105,18 @@ def delete_node(filename):
         flash(f"Node {node_id} not found.")
         return redirect(url_for('network_graph', filename=filename))
 
-    remove_low_degree_nodes(G)
+    # remove_low_degree_nodes(G)
     centrality, community_map = compute_centrality_and_communities(G)
 
-    fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
-    plot_url = save_fig_to_base64(fig)
+    # fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
+    # plot_url = save_fig_to_base64(fig)
+    #
+    # return render_template('index.html', plot_url=plot_url, filename=filename)
+    # 使用 Pyvis 画图
+    graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
-    return render_template('index.html', plot_url=plot_url, filename=filename)
+    # 将 HTML 文件路径传递给模板，而不是图像的 base64 编码
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename)
 
 
 if __name__ == '__main__':
