@@ -57,13 +57,10 @@ def network_graph(filename):
 
 @app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
 def show_top_communities(filename):
-    print("Starting top communities analysis for", filename)
-
     if request.method == 'POST':
         top_n = int(request.form.get('topN', 10))
     else:
         top_n = 10
-    print("Selected top N communities:", top_n)
 
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     _, file_extension = os.path.splitext(filename)
@@ -73,14 +70,12 @@ def show_top_communities(filename):
 
     centrality, community_map = compute_centrality_and_communities(G)
     communities = nx.community.louvain_communities(G, weight='weight')
-    print("Total communities found:", len(communities))
 
     community_scores = {i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
     top_communities = sorted(community_scores, key=community_scores.get, reverse=True)[:top_n]
 
     top_nodes = set().union(*(communities[i] for i in top_communities))
     H = G.subgraph(top_nodes)
-    print("Nodes in the subgraph (H):", len(H.nodes()))
 
     graph_html_path = draw_graph_with_pyvis(H, centrality, community_map)
 

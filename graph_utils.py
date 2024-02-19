@@ -59,10 +59,15 @@ def draw_graph_with_pyvis(X, centrality, community_map):
         color = community_colors[community_map[node] % len(community_colors)]
         net.add_node(node, title=str(node), size=centrality[node] * 1000, group=community_map[node], color=color)
 
-    # 只添加前 500 个节点之间的边
-    for source, target in X.edges(top_nodes):
+    # 计算图中所有边的最大权重
+    max_weight = max(data['weight'] for _, _, data in X.edges(data=True))
+
+    # 只添加前 100 个节点之间的边，并根据权重相对于最大权重的比例设置边的宽度
+    for source, target, data in X.edges(data=True):
         if source in top_nodes and target in top_nodes:
-            net.add_edge(source, target)
+            weight = data.get('weight', 1)  # 默认权重为 1，如果没有指定权重
+            edge_width = weight / max_weight * 10  # 根据权重归一化计算宽度
+            net.add_edge(source, target, width=edge_width)
 
     # 优化布局参数
     net.options.physics.barnesHut.springLength = 2000
