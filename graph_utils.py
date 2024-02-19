@@ -73,6 +73,9 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     net.options.physics.maxVelocity = 5
     net.options.physics.minVelocity = 0.1
 
+    # Enable node deletion, node add, edge add, etc
+    net.show_buttons(filter_=['manipulation', 'physics'])
+
     # 指定生成的 HTML 文件路径
     filepath = os.path.join('static', 'graph.html')
     net.write_html(filepath)
