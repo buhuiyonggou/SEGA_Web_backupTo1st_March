@@ -5,6 +5,7 @@ from io import BytesIO
 import base64
 import os
 from pyvis.network import Network
+from fractions import Fraction
 
 
 def adjacency_to_edgelist(adj_matrix_df):
@@ -88,43 +89,87 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     return 'graph.html'
 
 
-def draw_graph(G, centrality, community_map, fig_size=(5, 3), node_scale=3000, title=""):
-    fig, ax = plt.subplots(figsize=fig_size)
-    pos = nx.spring_layout(G, k=0.5, seed=4572321)
-    node_color = [community_map.get(n, 0) for n in G.nodes()]
-    node_size = [centrality.get(n, 0) * node_scale for n in G.nodes()]
-    nx.draw_networkx(
-        G,
-        pos=pos,
-        with_labels=True,
-        node_color=node_color,
-        node_size=node_size,
-        edge_color="gainsboro",
-        alpha=0.4,
-        ax=ax,
-        font_size=3
-    )
-    set_graph_title_and_legend(ax, fig, title=title)
-    return fig, ax
+def draw_shortest_path_graph(G, path):
+    net = Network(height="300px", width="100%", bgcolor="#ffffff", font_color="black")
+
+    # 添加路径中的节点和边
+    previous_node = None
+    for node in path:
+        net.add_node(node, title=str(node), label=str(node))
+        if previous_node is not None:
+            weight = G[previous_node][node].get('weight', 1)  # 获取边的权重，默认为1
+            # 转换权重为分数表示
+            edge_weight = str(Fraction(weight).limit_denominator())
+            net.add_edge(previous_node, node, title=str(edge_weight), label=str(edge_weight))
+        previous_node = node
+
+    # 优化布局参数
+    net.options.physics.barnesHut.springLength = 200
+    net.options.physics.barnesHut.springConstant = 0.05
+    net.options.physics.barnesHut.damping = 0.09
+    net.options.physics.barnesHut.centralGravity = 0.3
+    net.options.physics.barnesHut.gravitationalConstant = -800
+    net.options.physics.maxVelocity = 50
+    net.options.physics.minVelocity = 0.1
+
+    # net.show_buttons(filter_=['manipulation', 'physics'])  # 这行被移除，不再显示操作按钮
+
+    unique_filename = f"shortest_path.html"
+    filepath = os.path.join('static', unique_filename)
+    net.write_html(filepath)
+
+    return unique_filename
 
 
-def set_graph_title_and_legend(ax, fig, title=""):
-    font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
-    font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
-    ax.set_title(title, fontdict=font_title)
-    ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes,
-            fontdict=font_legend)
-    ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes,
-            fontdict=font_legend)
-    ax.margins(0.1, 0.05)
-    fig.tight_layout()
-    plt.axis("off")
+def invert_weights(G):
+    H = nx.Graph()
+    for u, v, data in G.edges(data=True):
+        # 确保权重为正数，避免除零错误
+        if data['weight'] > 0:
+            H.add_edge(u, v, weight=1.0 / data['weight'])
+        else:
+            # 对于权重为0或未定义的情况，可以设置一个大的权重值
+            H.add_edge(u, v, weight=float('inf'))
+    return H
 
-
-def save_fig_to_base64(fig):
-    img = BytesIO()
-    fig.savefig(img, format='png', dpi=300)
-    plt.close(fig)
-    img.seek(0)
-    return base64.b64encode(img.getvalue()).decode('utf8')
+#
+# def draw_graph(G, centrality, community_map, fig_size=(5, 3), node_scale=3000, title=""):
+#     fig, ax = plt.subplots(figsize=fig_size)
+#     pos = nx.spring_layout(G, k=0.5, seed=4572321)
+#     node_color = [community_map.get(n, 0) for n in G.nodes()]
+#     node_size = [centrality.get(n, 0) * node_scale for n in G.nodes()]
+#     nx.draw_networkx(
+#         G,
+#         pos=pos,
+#         with_labels=True,
+#         node_color=node_color,
+#         node_size=node_size,
+#         edge_color="gainsboro",
+#         alpha=0.4,
+#         ax=ax,
+#         font_size=3
+#     )
+#     set_graph_title_and_legend(ax, fig, title=title)
+#     return fig, ax
+#
+#
+# def set_graph_title_and_legend(ax, fig, title=""):
+#     font_title = {"color": "black", "fontweight": "bold", "fontsize": 5}
+#     font_legend = {"color": "red", "fontweight": "bold", "fontsize": 3}
+#     ax.set_title(title, fontdict=font_title)
+#     ax.text(0.80, 0.10, "Node color = Community structure", horizontalalignment="center", transform=ax.transAxes,
+#             fontdict=font_legend)
+#     ax.text(0.80, 0.06, "Node size = PageRank centrality", horizontalalignment="center", transform=ax.transAxes,
+#             fontdict=font_legend)
+#     ax.margins(0.1, 0.05)
+#     fig.tight_layout()
+#     plt.axis("off")
+#
+#
+# def save_fig_to_base64(fig):
+#     img = BytesIO()
+#     fig.savefig(img, format='png', dpi=300)
+#     plt.close(fig)
+#     img.seek(0)
+#     return base64.b64encode(img.getvalue()).decode('utf8')
 

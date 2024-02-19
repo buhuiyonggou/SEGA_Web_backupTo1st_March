@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import networkx as nx
 import os
+
+from pyvis.network import Network
 from werkzeug.utils import secure_filename
-from graph_utils import load_graph_data, remove_low_degree_nodes, compute_centrality_and_communities, draw_graph, draw_graph_with_pyvis, save_fig_to_base64
+from graph_utils import load_graph_data, remove_low_degree_nodes, compute_centrality_and_communities, draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
 
 app = Flask(__name__)
 
@@ -80,6 +82,30 @@ def show_top_communities(filename):
     graph_html_path = draw_graph_with_pyvis(H, centrality, community_map)
 
     return render_template('index.html', graph_html_path=graph_html_path, filename=filename)
+
+
+@app.route('/find_shortest_path', methods=['POST'])
+def find_shortest_path():
+    data = request.get_json()
+    filename = data['filename']
+    nodeStart = data['nodeStart']
+    nodeEnd = data['nodeEnd']
+
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    _, file_extension = os.path.splitext(filename)
+    _, G = load_graph_data(filepath, file_extension)
+
+    # 反转权重以反映亲密度
+    H = invert_weights(G)
+
+    # 计算最短路径
+    path = nx.shortest_path(H, source=nodeStart, target=nodeEnd, weight='weight')
+
+    # 绘制最短路径图
+    unique_filename = draw_shortest_path_graph(H, path)
+
+    # 返回生成的图表的路径供前端使用
+    return jsonify({'graph_html_path': f'/static/{unique_filename}'})
 
 
 if __name__ == '__main__':
