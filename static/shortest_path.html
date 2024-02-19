@@ -88,8 +88,8 @@
                   
 
                   // parsing and collecting nodes and edges from the python
-                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "black"}, "id": "SAM", "label": "SAM", "shape": "dot", "title": "SAM"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "JON", "label": "JON", "shape": "dot", "title": "JON"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "NED", "label": "NED", "shape": "dot", "title": "NED"}]);
-                  edges = new vis.DataSet([{"from": "SAM", "label": "1/121", "title": "1/121", "to": "JON"}, {"from": "JON", "label": "1/29", "title": "1/29", "to": "NED"}]);
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "black"}, "id": "JON", "label": "JON", "shape": "dot", "title": "JON"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "NED", "label": "NED", "shape": "dot", "title": "NED"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "ROBERT", "label": "ROBERT", "shape": "dot", "title": "ROBERT"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "VISERYS", "label": "VISERYS", "shape": "dot", "title": "VISERYS"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "DAENERYS", "label": "DAENERYS", "shape": "dot", "title": "DAENERYS"}, {"color": "#97c2fc", "font": {"color": "black"}, "id": "DROGO", "label": "DROGO", "shape": "dot", "title": "DROGO"}]);
+                  edges = new vis.DataSet([{"from": "JON", "label": "1/29", "title": "1/29", "to": "NED"}, {"from": "NED", "label": "1/192", "title": "1/192", "to": "ROBERT"}, {"from": "ROBERT", "label": "1/7", "title": "1/7", "to": "VISERYS"}, {"from": "VISERYS", "label": "1/66", "title": "1/66", "to": "DAENERYS"}, {"from": "DAENERYS", "label": "1/91", "title": "1/91", "to": "DROGO"}]);
 
                   nodeColors = {};
                   allNodes = nodes.get({ returnType: "Object" });
