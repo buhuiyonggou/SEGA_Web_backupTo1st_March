@@ -7,6 +7,28 @@
 <body>
     <h1>File uploaded successfully!</h1>
     <h2>Click the button below to choose the algorithm</h2>
+    <!-- Centrality Algorithm Selection -->
+    <h3>Select Centrality Algorithm:</h3>
+    <select id="centralityAlgorithm">
+        <option value="pagerank">PageRank</option>
+        <option value="betweenness">Betweenness</option>
+        <option value="closeness">Closeness</option>
+        <option value="degree">Degree</option>
+        <option value="eigenvector">Eigenvector</option>
+{#        <option value="katz">Katz</option>#}
+        <option value="load">Load</option>
+{#        <option value="harmonic">Harmonic</option>#}
+    </select>
+
+    <!-- Community Detection Algorithm Selection -->
+    <h3>Select Community Detection Algorithm:</h3>
+    <select id="communityAlgorithm">
+        <option value="louvain">Louvain</option>
+        <option value="greedy_modularity">Greedy Modularity</option>
+        <option value="label_propagation">Label Propagation</option>
+        <option value="fluid">Fluid Communities</option>
+        <option value="girvan_newman">Girvan-Newman</option>
+    </select>
     <script type="text/javascript">
         function disableButtonsAndShowWaitMessage() {
             var buttons = document.querySelectorAll('input[type="button"]');
@@ -18,14 +40,20 @@
 
         function handleFullAnalysis() {
             disableButtonsAndShowWaitMessage();
-            window.location.href = "{{ url_for('network_graph', filename=filename) }}";
+            var centralityAlgorithm = document.getElementById('centralityAlgorithm').value;
+            var communityAlgorithm = document.getElementById('communityAlgorithm').value;
+            window.location.href = "{{ url_for('network_graph', filename=filename) }}?centrality=" + centralityAlgorithm + "&community=" + communityAlgorithm;
         }
 
         function promptTopNCommunities() {
             disableButtonsAndShowWaitMessage();
             var topN = prompt("Please enter the number of top communities you want to analyze:", "10");
             if (topN != null) {
+                var centralityAlgorithm = document.getElementById('centralityAlgorithm').value;
+                var communityAlgorithm = document.getElementById('communityAlgorithm').value;
                 document.getElementById('topN').value = topN; // Set the value in the hidden form
+                document.getElementById('centralityAlgorithmInput').value = centralityAlgorithm;
+                document.getElementById('communityAlgorithmInput').value = communityAlgorithm;
                 document.getElementById('topNForm').submit(); // Submit the form
             } else {
                 // If user cancels the prompt, re-enable the buttons
@@ -46,6 +74,8 @@
     <!-- 隐藏的表单用于提交用户输入的Top N值 -->
     <form id="topNForm" action="{{ url_for('show_top_communities', filename=filename) }}" method="post" style="display: none;">
         <input type="hidden" id="topN" name="topN">
+        <input type="hidden" id="centralityAlgorithmInput" name="centrality">
+        <input type="hidden" id="communityAlgorithmInput" name="community">
     </form>
 </body>
 </html>

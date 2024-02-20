@@ -44,6 +44,11 @@
     {% else %}
         <p>No graph to display.</p>
     {% endif %}
+    <!-- 添加图例 -->
+    <div class="legend">
+        <p>Node color = Community structure by {{ community_algo }}</p>
+        <p>Node size = Centrality by {{ centrality_algo }}</p>
+    </div>
     <br>
     <!-- 添加表单以允许用户输入两个节点 -->
     <h2>Find Shortest Path</h2>

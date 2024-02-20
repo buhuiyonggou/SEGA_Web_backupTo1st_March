@@ -1,10 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-import networkx as nx
 import os
-
-from pyvis.network import Network
+import networkx as nx
+from flask import Flask, render_template, request, redirect, flash, jsonify
 from werkzeug.utils import secure_filename
-from graph_utils import load_graph_data, remove_low_degree_nodes, compute_centrality_and_communities, draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from algorithms import calculate_centrality, detect_communities
+from graph_utils import load_graph_data, draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
 
 app = Flask(__name__)
 
@@ -41,6 +40,10 @@ def upload_file():
 
 @app.route('/show_graph/<filename>')
 def network_graph(filename):
+    # 从URL参数获取centrality和community算法的选择
+    centrality_algo = request.args.get('centrality', 'pagerank')
+    community_algo = request.args.get('community', 'louvain')
+
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     _, file_extension = os.path.splitext(filename)
 
@@ -48,21 +51,27 @@ def network_graph(filename):
 
     # remove_low_degree_nodes(G)
 
-    centrality, community_map = compute_centrality_and_communities(G)
+    centrality = calculate_centrality(G, centrality_algo)
+    communities = detect_communities(G, community_algo)
+    community_map = {node: i for i, community in enumerate(communities) for node in community}
 
     # 使用 Pyvis 画图
     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
     # 将 HTML 文件路径传递给模板，而不是图像的 base64 编码
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
 def show_top_communities(filename):
     if request.method == 'POST':
         top_n = int(request.form.get('topN', 10))
+        centrality_algo = request.form.get('centrality', 'pagerank')  # Use request.form for POST data
+        community_algo = request.form.get('community', 'louvain')  # Use request.form for POST data
     else:
         top_n = 10
+        centrality_algo = 'pagerank'
+        community_algo = 'louvain'
 
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     _, file_extension = os.path.splitext(filename)
@@ -70,8 +79,9 @@ def show_top_communities(filename):
 
     # remove_low_degree_nodes(G)
 
-    centrality, community_map = compute_centrality_and_communities(G)
-    communities = nx.community.louvain_communities(G, weight='weight')
+    centrality = calculate_centrality(G, centrality_algo)
+    communities = detect_communities(G, community_algo)
+    community_map = {node: i for i, community in enumerate(communities) for node in community}
 
     community_scores = {i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
     top_communities = sorted(community_scores, key=community_scores.get, reverse=True)[:top_n]
@@ -81,7 +91,7 @@ def show_top_communities(filename):
 
     graph_html_path = draw_graph_with_pyvis(H, centrality, community_map)
 
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/find_shortest_path', methods=['POST'])
@@ -113,3 +123,35 @@ if __name__ == '__main__':
         os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)
     # app.run(host='0.0.0.0', debug=True)
+
+
+# @app.route('/delete_node/<filename>', methods=['POST'])
+# def delete_node(filename):
+#     # 记录接收到的请求和文件名
+#     node_id = request.form['nodeId']  # 获取用户输入的节点ID
+#
+#     filepath = os.path.join(UPLOAD_FOLDER, filename)
+#     _, file_extension = os.path.splitext(filename)
+#
+#     _, G = load_graph_data(filepath, file_extension)
+#
+#     # 删除节点及其相连的边
+#     if node_id in G:
+#         G.remove_node(node_id)
+#         flash(f"Node {node_id} deleted.")
+#     else:
+#         flash(f"Node {node_id} not found.")
+#         return redirect(url_for('network_graph', filename=filename))
+#
+#     # remove_low_degree_nodes(G)
+#     centrality, community_map = compute_centrality_and_communities(G)
+#
+#     # fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
+#     # plot_url = save_fig_to_base64(fig)
+#     #
+#     # return render_template('index.html', plot_url=plot_url, filename=filename)
+#     # 使用 Pyvis 画图
+#     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
+#
+#     # 将 HTML 文件路径传递给模板，而不是图像的 base64 编码
+#     return render_template('index.html', graph_html_path=graph_html_path, filename=filename)

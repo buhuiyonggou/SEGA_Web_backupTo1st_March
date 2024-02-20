@@ -38,13 +38,6 @@ def remove_low_degree_nodes(G, min_degree=5):
     G.remove_nodes_from(low_degree_nodes)
 
 
-def compute_centrality_and_communities(X):
-    centrality = nx.pagerank(X, weight='weight')
-    communities = nx.community.louvain_communities(X, weight='weight')
-    community_map = {node: i for i, community in enumerate(communities) for node in community}
-    return centrality, community_map
-
-
 def draw_graph_with_pyvis(X, centrality, community_map):
     net = Network(height="750px", width="100%", bgcolor="#ffffff", font_color="black")
 
@@ -58,7 +51,7 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     # 添加前 100 个节点到 Pyvis 网络，并设置颜色
     for node in top_nodes:
         color = community_colors[community_map[node] % len(community_colors)]
-        net.add_node(node, title=str(node), size=centrality[node] * 1000, group=community_map[node], color=color)
+        net.add_node(node, title=str(node), size=centrality[node] * 500, group=community_map[node], color=color)
 
     # 计算图中所有边的最大权重
     max_weight = max(data['weight'] for _, _, data in X.edges(data=True))
@@ -172,4 +165,20 @@ def invert_weights(G):
 #     plt.close(fig)
 #     img.seek(0)
 #     return base64.b64encode(img.getvalue()).decode('utf8')
+#
+# def compute_centrality_and_communities(X):
+#     centrality = nx.pagerank(X, weight='weight')
+#     communities = nx.community.louvain_communities(X, weight='weight')
+#     community_map = {node: i for i, community in enumerate(communities) for node in community}
+#     return centrality, community_map
+#
+#
+# def compute_betweenness_and_louvain(X):
+#     # 计算介数中心性
+#     centrality = nx.betweenness_centrality(X, weight='weight')
+#     # 使用Louvain方法计算社区结构
+#     communities = nx.community.louvain_communities(X, weight='weight')
+#     # 构建社区映射字典：节点 -> 社区编号
+#     community_map = {node: i for i, community in enumerate(communities) for node in community}
+#     return centrality, community_map
 
