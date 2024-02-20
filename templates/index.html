@@ -50,6 +50,7 @@
         <p>Node size = Centrality by {{ centrality_algo }}</p>
     </div>
     <br>
+
     <!-- 添加表单以允许用户输入两个节点 -->
     <h2>Find Shortest Path</h2>
     <form id="shortestPathForm">
@@ -61,6 +62,7 @@
     </form>
 
     <div id="pathResult" style="width: 50%; height: 300px;"></div>
+
     <br>
     <a href="{{ url_for('upload_file') }}">Upload another file</a>
 
@@ -98,13 +100,19 @@
             data: JSON.stringify({ 'filename': filename, 'nodeStart': nodeStart, 'nodeEnd': nodeEnd }),
             dataType: 'json',
             success: function(response) {
-                // 将新生成的 Pyvis 图嵌入到页面中
-                document.getElementById('pathResult').innerHTML = '<iframe src="' + response.graph_html_path + '" height="500" width="100%"></iframe>';
+                if (response.error) {
+                    // Display an error message if the error key is present in the response
+                    document.getElementById('pathResult').innerHTML = '<p style="color: red;">' + response.error + '</p>';
+                } else {
+                    // Embed the new Pyvis graph into the page
+                    document.getElementById('pathResult').innerHTML = '<iframe src="' + response.graph_html_path + '" height="500" width="100%"></iframe>';
+                }
             },
             error: function(error) {
                 console.log(error);
+                document.getElementById('pathResult').innerHTML = '<p style="color: red;">An error occurred while processing your request.</p>';
             }
-        });
+            });
     }
     </script>
 </body>

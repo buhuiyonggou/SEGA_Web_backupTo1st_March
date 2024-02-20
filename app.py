@@ -105,6 +105,10 @@ def find_shortest_path():
     _, file_extension = os.path.splitext(filename)
     _, G = load_graph_data(filepath, file_extension)
 
+    # Check if the specified nodes exist in the graph
+    if nodeStart not in G or nodeEnd not in G:
+        return jsonify({'error': 'One or both of the specified nodes do not exist in the graph.'})
+
     # 反转权重以反映亲密度
     H = invert_weights(G)
 
