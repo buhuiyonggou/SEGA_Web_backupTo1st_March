@@ -8,6 +8,7 @@ from pyvis.network import Network
 from fractions import Fraction
 
 
+# Convert adjacency matrix to edge list
 def adjacency_to_edgelist(adj_matrix_df):
     edges = []
     for i, row in adj_matrix_df.iterrows():
@@ -17,6 +18,7 @@ def adjacency_to_edgelist(adj_matrix_df):
     return pd.DataFrame(edges, columns=['Source', 'Target', 'Weight'])
 
 
+# Load graph data from a file
 def load_graph_data(filepath, file_extension):
     if file_extension.lower() == '.csv':
         df = pd.read_csv(filepath)
@@ -33,37 +35,37 @@ def load_graph_data(filepath, file_extension):
     return df, G
 
 
+# Optionally remove nodes with a degree lower than a specified threshold
 def remove_low_degree_nodes(G, min_degree=5):
     low_degree_nodes = [node for node, degree in G.degree() if degree < min_degree]
     G.remove_nodes_from(low_degree_nodes)
 
 
+# Draw network graph using Pyvis
 def draw_graph_with_pyvis(X, centrality, community_map):
     net = Network(height="750px", width="100%", bgcolor="#ffffff", font_color="black")
 
-    # 根据 centrality 值对 H 中的节点进行排序，选择前 100 个
+    # Sort nodes in H based on centrality, only show top 100
     top_nodes = sorted((node for node in X.nodes()), key=lambda node: centrality.get(node, 0), reverse=True)[:100]
 
-    # 准备社区颜色
     community_colors = ["#FFA07A", "#20B2AA", "#778899", "#9370DB", "#FFD700", "#FF6347", "#3CB371", "#F08080",
                         "#00FA9A", "#BDB76B", "#FF00FF"]
 
-    # 添加前 100 个节点到 Pyvis 网络，并设置颜色
+    # Add top 100 nodes to Pyvis network and set colors
     for node in top_nodes:
         color = community_colors[community_map[node] % len(community_colors)]
         net.add_node(node, title=str(node), size=centrality[node] * 500, group=community_map[node], color=color)
 
-    # 计算图中所有边的最大权重
+    # Find the max weight for edges
     max_weight = max(data['weight'] for _, _, data in X.edges(data=True))
 
-    # 只添加前 100 个节点之间的边，并根据权重相对于最大权重的比例设置边的宽度
+    # Add edges between the top 100 nodes, setting the edge width based on the weight relative to the maximum weight
     for source, target, data in X.edges(data=True):
         if source in top_nodes and target in top_nodes:
-            weight = data.get('weight', 1)  # 默认权重为 1，如果没有指定权重
-            edge_width = weight / max_weight * 10  # 根据权重归一化计算宽度
+            weight = data.get('weight', 1)  # Default weight is 1 if not specified
+            edge_width = weight / max_weight * 10  # Normalize width based on weight
             net.add_edge(source, target, width=edge_width)
 
-    # 优化布局参数
     net.options.physics.barnesHut.springLength = 2000
     net.options.physics.barnesHut.springConstant = 0.02
     net.options.physics.barnesHut.damping = 0.09
@@ -75,28 +77,27 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     # Enable node deletion, node add, edge add, etc
     net.show_buttons(filter_=['manipulation', 'physics'])
 
-    # 指定生成的 HTML 文件路径
     filepath = os.path.join('static', 'graph.html')
     net.write_html(filepath)
 
     return 'graph.html'
 
 
+# Draw the shortest path graph using Pyvis
 def draw_shortest_path_graph(G, path):
     net = Network(height="300px", width="100%", bgcolor="#ffffff", font_color="black")
 
-    # 添加路径中的节点和边
+    # Add nodes and edges along the path
     previous_node = None
     for node in path:
         net.add_node(node, title=str(node), label=str(node))
         if previous_node is not None:
-            weight = G[previous_node][node].get('weight', 1)  # 获取边的权重，默认为1
-            # 转换权重为分数表示
+            weight = G[previous_node][node].get('weight', 1)  # Get the weight of the edge, defaulting to 1
+            # Convert the weight to a fraction representation
             edge_weight = str(Fraction(weight).limit_denominator())
             net.add_edge(previous_node, node, title=str(edge_weight), label=str(edge_weight))
         previous_node = node
 
-    # 优化布局参数
     net.options.physics.barnesHut.springLength = 200
     net.options.physics.barnesHut.springConstant = 0.05
     net.options.physics.barnesHut.damping = 0.09
@@ -105,7 +106,7 @@ def draw_shortest_path_graph(G, path):
     net.options.physics.maxVelocity = 50
     net.options.physics.minVelocity = 0.1
 
-    # net.show_buttons(filter_=['manipulation', 'physics'])  # 这行被移除，不再显示操作按钮
+    # net.show_buttons(filter_=['manipulation', 'physics'])
 
     unique_filename = f"shortest_path.html"
     filepath = os.path.join('static', unique_filename)
@@ -114,14 +115,15 @@ def draw_shortest_path_graph(G, path):
     return unique_filename
 
 
+# Invert edge weights to reflect closeness instead of distance
 def invert_weights(G):
     H = nx.Graph()
     for u, v, data in G.edges(data=True):
-        # 确保权重为正数，避免除零错误
+        # Ensure the weight is positive to avoid division by zero errors
         if data['weight'] > 0:
-            H.add_edge(u, v, weight=1.0 / data['weight'])
+            H.add_edge(u, v, weight=1.0 / data['weight'])  # Invert the weight for closeness instead of distance
         else:
-            # 对于权重为0或未定义的情况，可以设置一个大的权重值
+            # For edges with zero or undefined weight, assign a large weight value
             H.add_edge(u, v, weight=float('inf'))
     return H
 
@@ -174,11 +176,8 @@ def invert_weights(G):
 #
 #
 # def compute_betweenness_and_louvain(X):
-#     # 计算介数中心性
 #     centrality = nx.betweenness_centrality(X, weight='weight')
-#     # 使用Louvain方法计算社区结构
 #     communities = nx.community.louvain_communities(X, weight='weight')
-#     # 构建社区映射字典：节点 -> 社区编号
 #     community_map = {node: i for i, community in enumerate(communities) for node in community}
 #     return centrality, community_map
 

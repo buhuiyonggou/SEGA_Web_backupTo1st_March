@@ -24,13 +24,10 @@ def calculate_centrality(G, algorithm='pagerank'):
 
 def detect_communities(G, algorithm='louvain'):
     if algorithm == 'louvain':
-        # 使用Louvain算法进行社区检测
         return nx.community.louvain_communities(G)
     elif algorithm == 'greedy_modularity':
-        # 使用贪婪模块度最大化进行社区检测
         return list(nx.algorithms.community.greedy_modularity_communities(G))
     elif algorithm == 'label_propagation':
-        # 使用标签传播算法进行社区检测
         return list(nx.algorithms.community.label_propagation_communities(G))
     elif algorithm == 'fluid':
         # 使用Fluid Communities算法进行社区检测，注意，这里需要提前知道社区数k
