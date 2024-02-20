@@ -1,35 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyze Network</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 40px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 700px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .form-control, .btn {
+            margin-top: 10px;
+        }
+        .legend {
+            margin-top: 20px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            color: #495057;
+        }
+    </style>
 </head>
 <body>
-    <h1>File uploaded successfully!</h1>
-    <h2>Click the button below to choose the algorithm</h2>
-    <!-- Centrality Algorithm Selection -->
-    <h3>Select Centrality Algorithm:</h3>
-    <select id="centralityAlgorithm">
-        <option value="pagerank">PageRank</option>
-        <option value="betweenness">Betweenness</option>
-        <option value="closeness">Closeness</option>
-        <option value="degree">Degree</option>
-        <option value="eigenvector">Eigenvector</option>
-{#        <option value="katz">Katz</option>#}
-        <option value="load">Load</option>
-{#        <option value="harmonic">Harmonic</option>#}
-    </select>
+    <div class="container text-center">
+        <h1>File Uploaded Successfully!</h1>
+        <h2>Choose Your Analysis Algorithm</h2>
 
-    <!-- Community Detection Algorithm Selection -->
-    <h3>Select Community Detection Algorithm:</h3>
-    <select id="communityAlgorithm">
-        <option value="louvain">Louvain</option>
-        <option value="greedy_modularity">Greedy Modularity</option>
-        <option value="label_propagation">Label Propagation</option>
-        <option value="fluid">Fluid Communities</option>
-        <option value="girvan_newman">Girvan-Newman</option>
-    </select>
-    <script type="text/javascript">
+        <!-- Centrality Algorithm Selection -->
+        <div class="mt-4">
+            <h3>Select Centrality Algorithm:</h3>
+            <select id="centralityAlgorithm" class="form-control">
+                <option value="pagerank">PageRank</option>
+                <option value="betweenness">Betweenness</option>
+                <option value="closeness">Closeness</option>
+                <option value="degree">Degree</option>
+                <option value="eigenvector">Eigenvector</option>
+                <!-- <option value="katz">Katz</option> -->
+                <option value="load">Load</option>
+                <!-- <option value="harmonic">Harmonic</option> -->
+            </select>
+        </div>
+
+        <!-- Community Detection Algorithm Selection -->
+        <div class="mt-4">
+            <h3>Select Community Detection Algorithm:</h3>
+            <select id="communityAlgorithm" class="form-control">
+                <option value="louvain">Louvain</option>
+                <option value="greedy_modularity">Greedy Modularity</option>
+                <option value="label_propagation">Label Propagation</option>
+                <option value="fluid">Fluid Communities</option>
+                <option value="girvan_newman">Girvan-Newman</option>
+            </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-4">
+            <button id="fullAnalysisButton" class="btn btn-primary btn-block" onclick="handleFullAnalysis()">Full Network Analysis</button>
+            <button id="topCommunitiesButton" class="btn btn-secondary btn-block" onclick="promptTopNCommunities()">Top N Communities Analysis</button>
+        </div>
+
+        <!-- Hidden Form for Top N Communities -->
+        <form id="topNForm" action="{{ url_for('show_top_communities', filename=filename) }}" method="post" style="display: none;">
+            <input type="hidden" id="topN" name="topN">
+            <input type="hidden" id="centralityAlgorithmInput" name="centrality">
+            <input type="hidden" id="communityAlgorithmInput" name="community">
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
         function disableButtonsAndShowWaitMessage() {
             var buttons = document.querySelectorAll('input[type="button"]');
             for (var i = 0; i < buttons.length; i++) {
@@ -51,12 +102,11 @@
             if (topN != null) {
                 var centralityAlgorithm = document.getElementById('centralityAlgorithm').value;
                 var communityAlgorithm = document.getElementById('communityAlgorithm').value;
-                document.getElementById('topN').value = topN; // Set the value in the hidden form
+                document.getElementById('topN').value = topN;
                 document.getElementById('centralityAlgorithmInput').value = centralityAlgorithm;
                 document.getElementById('communityAlgorithmInput').value = communityAlgorithm;
-                document.getElementById('topNForm').submit(); // Submit the form
+                document.getElementById('topNForm').submit();
             } else {
-                // If user cancels the prompt, re-enable the buttons
                 var buttons = document.querySelectorAll('input[type="button"]');
                 for (var i = 0; i < buttons.length; i++) {
                     buttons[i].value = i === 0 ? "Full Network Analysis" : "Top N Communities Analysis";
@@ -65,17 +115,5 @@
             }
         }
     </script>
-    <!-- 全网络分析按钮 -->
-    <input type="button" id="fullAnalysisButton" value="Full Network Analysis" onclick="handleFullAnalysis()">
-
-    <!-- 提示输入Top N社区数量的按钮 -->
-    <input type="button" id="topCommunitiesButton" value="Top N Communities Analysis" onclick="promptTopNCommunities()">
-
-    <!-- 隐藏的表单用于提交用户输入的Top N值 -->
-    <form id="topNForm" action="{{ url_for('show_top_communities', filename=filename) }}" method="post" style="display: none;">
-        <input type="hidden" id="topN" name="topN">
-        <input type="hidden" id="centralityAlgorithmInput" name="centrality">
-        <input type="hidden" id="communityAlgorithmInput" name="community">
-    </form>
 </body>
 </html>

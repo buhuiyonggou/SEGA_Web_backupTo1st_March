@@ -2,118 +2,132 @@
 <html>
 <head>
     <title>Network Graph</title>
-    <!-- 引入 Bootstrap CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for styling -->
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+        .container {
+            padding-top: 20px;
+        }
+        .alert-message {
+            color: red;
+        }
+        .legend {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .find-path-form {
+            margin-top: 20px;
+        }
+        .path-result {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Centrality and Community detection</h1>
-    <!-- 显示闪现消息 -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div style="color: red;">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="container">
+        <h1>Centrality and Community Detection</h1>
 
-    <!-- Operation Guide Modal -->
-    <div class="modal fade" id="operationGuideModal" tabindex="-1" role="dialog" aria-labelledby="operationGuideModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="operationGuideModalLabel">Operation Guide</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    If you want to edit nodes or edges (such as delete, add), please enable "Manipulation".<br>
-                    If you want to adjust physical effects, please enable "Physics".
-                    Have fun! :)
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Got it!</button>
+        <!-- Display flash messages -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Modal for operation guide -->
+        <div class="modal fade" id="operationGuideModal" tabindex="-1" aria-labelledby="operationGuideModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="operationGuideModalLabel">Operation Guide</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        If you want to edit (delete or add) nodes or edges, please enable "Manipulation".<br>
+                        If you want to adjust physical effects, please enable "Physics".<br>
+                        Have fun! :)
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Interactive graph iframe -->
+        {% if graph_html_path %}
+            <iframe src="{{ url_for('static', filename=graph_html_path.split('/')[-1]) }}" height="835" width="100%"></iframe>
+        {% else %}
+            <p>No graph to display.</p>
+        {% endif %}
+
+        <!-- Legend explaining node color and size -->
+        <div class="legend">
+            <p>Node color = Community structure by {{ community_algo }}</p>
+            <p>Node size = Centrality by {{ centrality_algo }}</p>
+        </div>
+
+        <!-- Form for finding shortest path -->
+        <div class="find-path-form">
+            <h2>Find Shortest Path</h2>
+            <label for="nodeStart">Start Node:</label>
+            <input type="text" id="nodeStart" name="nodeStart" required>
+            <label for="nodeEnd">End Node:</label>
+            <input type="text" id="nodeEnd" name="nodeEnd" required>
+            <button onclick="findShortestPath()" class="btn btn-primary">Find Path</button>
+        </div>
+
+        <!-- Container to display path results -->
+        <div id="pathResult" class="path-result"></div>
+
+        <br>
+
+        <!-- Link to upload another file -->
+        <a href="{{ url_for('upload_file') }}" class="btn btn-secondary">Upload Another File</a>
+
+        <!-- Current Filename for debugging -->
+        <p>Current Filename: {{ filename }}</p>
     </div>
 
-    <!-- 显示交互式图像 -->
-    {% if graph_html_path %}
-        <iframe src="{{ url_for('static', filename=graph_html_path.split('/')[-1]) }}" height="835" width="100%"></iframe>
-    {% else %}
-        <p>No graph to display.</p>
-    {% endif %}
-    <!-- 添加图例 -->
-    <div class="legend">
-        <p>Node color = Community structure by {{ community_algo }}</p>
-        <p>Node size = Centrality by {{ centrality_algo }}</p>
-    </div>
-    <br>
-
-    <!-- 添加表单以允许用户输入两个节点 -->
-    <h2>Find Shortest Path</h2>
-    <form id="shortestPathForm">
-        <label for="nodeStart">Start Node:</label>
-        <input type="text" id="nodeStart" name="nodeStart" required>
-        <label for="nodeEnd">End Node:</label>
-        <input type="text" id="nodeEnd" name="nodeEnd" required>
-        <input type="button" value="Find Path" onclick="findShortestPath()">
-    </form>
-
-    <div id="pathResult" style="width: 50%; height: 300px;"></div>
-
-    <br>
-    <a href="{{ url_for('upload_file') }}">Upload another file</a>
-
-    <!-- Print filename for debugging -->
-    <p>Current Filename: {{ filename }}</p>
-
-    <script type="text/javascript">
-        function disableButtonsAndShowWaitMessage() {
-            var submitButtons = document.querySelectorAll('input[type="submit"], input[type="button"]');
-            for (var i = 0; i < submitButtons.length; i++) {
-                submitButtons[i].value = 'Please wait...';
-                submitButtons[i].disabled = true;
-            }
-        }
-    </script>
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
-            // 页面加载完毕后自动显示模态框
             $('#operationGuideModal').modal('show');
         });
-    </script>
-    <script>
-    function findShortestPath() {
-        var nodeStart = document.getElementById('nodeStart').value;
-        var nodeEnd = document.getElementById('nodeEnd').value;
-        var filename = "{{ filename }}"; // 从 Flask 模板变量获取文件名
 
-        // 发送 AJAX 请求到 Flask 后端
-        $.ajax({
-            url: '/find_shortest_path',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ 'filename': filename, 'nodeStart': nodeStart, 'nodeEnd': nodeEnd }),
-            dataType: 'json',
-            success: function(response) {
-                if (response.error) {
-                    // Display an error message if the error key is present in the response
-                    document.getElementById('pathResult').innerHTML = '<p style="color: red;">' + response.error + '</p>';
-                } else {
-                    // Embed the new Pyvis graph into the page
-                    document.getElementById('pathResult').innerHTML = '<iframe src="' + response.graph_html_path + '" height="500" width="100%"></iframe>';
+        function findShortestPath() {
+            var nodeStart = document.getElementById('nodeStart').value;
+            var nodeEnd = document.getElementById('nodeEnd').value;
+            var filename = "{{ filename }}";
+            $.ajax({
+                url: '/find_shortest_path',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 'filename': filename, 'nodeStart': nodeStart, 'nodeEnd': nodeEnd }),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.error) {
+                        document.getElementById('pathResult').innerHTML = '<p class="alert alert-danger">' + response.error + '</p>';
+                    } else {
+                        document.getElementById('pathResult').innerHTML = '<iframe src="' + response.graph_html_path + '" height="300" width="100%"></iframe>';
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                    document.getElementById('pathResult').innerHTML = '<p class="alert alert-danger">An error occurred while processing your request.</p>';
                 }
-            },
-            error: function(error) {
-                console.log(error);
-                document.getElementById('pathResult').innerHTML = '<p style="color: red;">An error occurred while processing your request.</p>';
-            }
             });
-    }
+        }
     </script>
 </body>
 </html>

@@ -1,14 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Upload CSV File</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Network Data</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+        }
+        .container {
+            max-width: 600px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload csv or xlsx file</h1>
-    <form action="" method=post enctype=multipart/form-data>
-        <input type=file name=file>
-        <input type=submit value="Upload">
-    </form>
+    <div class="container">
+        <h1 class="mb-4 text-center">Upload Network Data</h1>
+        <div class="card">
+            <div class="card-body">
+                <form action="" method="post" enctype="multipart/form-data" class="d-flex flex-column align-items-center">
+                    <div class="form-group">
+                        <input type="file" name="file" class="form-control-file">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
