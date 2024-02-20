@@ -1,9 +1,10 @@
 import os
+import pandas as pd
 import networkx as nx
-from flask import Flask, render_template, request, redirect, flash, jsonify
+from flask import Flask, render_template, request, redirect, flash, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
-from graph_utils import load_graph_data, draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
 
 app = Flask(__name__)
 
@@ -18,6 +19,42 @@ def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# Convert adjacency matrix to edge list
+def adjacency_to_edgelist(adj_matrix_df):
+    edges = []
+    for i, row in adj_matrix_df.iterrows():
+        for j, weight in row.items():  # Changed from iteritems() to items()
+            if weight != 0 and i != j:  # Assuming no self-loops and non-zero weight
+                edges.append((i, j, weight))
+    return pd.DataFrame(edges, columns=['Source', 'Target', 'Weight'])
+
+
+# Load graph data from a file
+def load_graph_data(filepath, file_extension):
+    try:
+        if file_extension.lower() == '.csv':
+            df = pd.read_csv(filepath)
+        elif file_extension.lower() == '.xlsx':
+            adj_matrix_df = pd.read_excel(filepath, index_col=0)
+            df = adjacency_to_edgelist(adj_matrix_df)
+        else:
+            raise ValueError("Unsupported file type.")
+
+        # Check if required columns are present
+        if not {'Source', 'Target', 'Weight'}.issubset(df.columns):
+            raise ValueError("Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
+
+        G = nx.Graph()
+        for _, row in df.iterrows():
+            G.add_edge(row['Source'], row['Target'], weight=row['Weight'])
+
+        return df, G
+    except Exception as e:
+        # Handle any errors that occur during data loading
+        flash(str(e))  # Display the error message to the user
+        return None, None  # Return None values to indicate failure
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -49,6 +86,10 @@ def network_graph(filename):
 
     _, G = load_graph_data(filepath, file_extension)
 
+    if G is None:  # Check if G is None, indicating an error occurred
+        # flash('File format error. Please upload a valid file.', 'danger')
+        return redirect(url_for('upload_file'))  # Redirect the user to upload page
+
     # remove_low_degree_nodes(G)
 
     centrality = calculate_centrality(G, centrality_algo)
@@ -75,6 +116,10 @@ def show_top_communities(filename):
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     _, file_extension = os.path.splitext(filename)
     _, G = load_graph_data(filepath, file_extension)
+
+    if G is None:  # Check if G is None, indicating an error occurred
+        # flash('File format error. Please upload a valid file.', 'danger')
+        return redirect(url_for('upload_file'))  # Redirect the user to upload page
 
     # remove_low_degree_nodes(G)
 

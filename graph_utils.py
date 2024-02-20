@@ -1,38 +1,7 @@
-import pandas as pd
 import networkx as nx
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
 import os
 from pyvis.network import Network
 from fractions import Fraction
-
-
-# Convert adjacency matrix to edge list
-def adjacency_to_edgelist(adj_matrix_df):
-    edges = []
-    for i, row in adj_matrix_df.iterrows():
-        for j, weight in row.items():  # Changed from iteritems() to items()
-            if weight != 0 and i != j:  # Assuming no self-loops and non-zero weight
-                edges.append((i, j, weight))
-    return pd.DataFrame(edges, columns=['Source', 'Target', 'Weight'])
-
-
-# Load graph data from a file
-def load_graph_data(filepath, file_extension):
-    if file_extension.lower() == '.csv':
-        df = pd.read_csv(filepath)
-    elif file_extension.lower() == '.xlsx':
-        adj_matrix_df = pd.read_excel(filepath, index_col=0)
-        df = adjacency_to_edgelist(adj_matrix_df)
-    else:
-        raise ValueError("Unsupported file type.")
-
-    G = nx.Graph()
-    for _, row in df.iterrows():
-        G.add_edge(row['Source'], row['Target'], weight=row['Weight'])
-
-    return df, G
 
 
 # Optionally remove nodes with a degree lower than a specified threshold
