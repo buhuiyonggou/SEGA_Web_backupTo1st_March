@@ -15,7 +15,7 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     net = Network(height="750px", width="100%", bgcolor="#ffffff", font_color="black")
 
     # Sort nodes in H based on centrality, only show top 100
-    top_nodes = sorted((node for node in X.nodes()), key=lambda node: centrality.get(node, 0), reverse=True)[:100]
+    top_nodes = sorted((node for node in X.nodes()), key=lambda node: centrality.get(node, 0), reverse=True)[:200]
 
     community_colors = ["#FFA07A", "#20B2AA", "#778899", "#9370DB", "#FFD700", "#FF6347", "#3CB371", "#F08080",
                         "#00FA9A", "#BDB76B", "#FF00FF"]
@@ -32,7 +32,8 @@ def draw_graph_with_pyvis(X, centrality, community_map):
     for source, target, data in X.edges(data=True):
         if source in top_nodes and target in top_nodes:
             weight = data.get('weight', 1)  # Default weight is 1 if not specified
-            edge_width = weight / max_weight * 10  # Normalize width based on weight
+            edge_width = weight / max_weight * 2  # Normalize width based on weight
+            edge_width = edge_width
             net.add_edge(source, target, width=edge_width)
 
     net.options.physics.barnesHut.springLength = 2000

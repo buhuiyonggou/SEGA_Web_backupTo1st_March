@@ -46,6 +46,10 @@ def load_graph_data(filepath, file_extension):
         if not {'Source', 'Target', 'Weight'}.issubset(df.columns):
             raise ValueError("Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
 
+        # Sort by 'Weight' in descending order and select top 5000 rows
+        df = df.sort_values(by='Weight', ascending=False).head(3000)
+
+        # Create graph from dataframe
         G = nx.Graph()
         for _, row in df.iterrows():
             G.add_edge(row['Source'], row['Target'], weight=row['Weight'])
