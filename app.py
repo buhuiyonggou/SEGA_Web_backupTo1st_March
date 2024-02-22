@@ -203,41 +203,65 @@ def show_dendrogram(filename):
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     _, file_extension = os.path.splitext(filename)
 
-    # 加载数据并创建图G
+    # Load the graph data from the file
     df, G = load_graph_data(file_path, file_extension)
-
+    # If the graph is not loaded successfully, redirect to upload page
     if G is None:
         flash('Error loading graph data.', 'danger')
         return redirect(url_for('upload_file'))
 
-    # 使用Graph的邻接矩阵，但需要转换为距离矩阵
-    # 这里我们直接从G计算距离矩阵
+    # Compute the distance matrix directly from graph G
     distance_matrix = nx.floyd_warshall_numpy(G, weight='weight')
-    # 因为floyd_warshall_numpy返回的是numpy数组，我们需要将其转换为适合linkage函数的格式
+    # Convert the numpy array returned by floyd_warshall_numpy to a format suitable for the linkage function
     Z = linkage(squareform(distance_matrix, checks=False), method='complete')
 
-    # 转换Z为树结构的JSON
+    # Convert the linkage matrix Z into a JSON tree structure
     dendrogram_json = convert_to_dendrogram_json(Z, list(G.nodes()))
 
-    # 保存dendrogram_json到文件
+    # Save the dendrogram_json to a file
     dendrogram_json_path = os.path.join('static', 'dendrogram.json')
     with open(dendrogram_json_path, 'w') as f:
         json.dump(dendrogram_json, f)
 
-    # 使用Pyecharts生成树状图
+    # Use Pyecharts to generate a dendrogram
     tree_chart = (
         Tree(init_opts=opts.InitOpts(width="1200px", height="900px", theme=ThemeType.LIGHT))
-        .add("", [dendrogram_json], collapse_interval=10, initial_tree_depth=30, is_roam=True,
-             symbol="circle", label_opts=opts.LabelOpts(font_size=7)
+        .add("", [dendrogram_json],
+             collapse_interval=200,
+             initial_tree_depth=30,
+             is_roam=True,
+             symbol="circle",
+             symbol_size=8,  # Adjust the size of the nodes
+             label_opts=opts.LabelOpts(
+                 font_size=10,
+                 color="#fa8072",  # Darker color for labels for better readability
+                 font_style="normal",
+                 font_weight="bold",
+                 position="right"  # Adjust label position if needed
+             ),
+             # leaves_label_opts=opts.LabelOpts(
+             #     color="#fff",  # Light color for leaf labels if needed
+             #     position="right",
+             #     horizontal_align="right",
+             #     vertical_align="middle",
+             #     rotate=-90
+             # ),
              )
-        # .set_global_opts(title_opts=opts.TitleOpts(title="Dendrogram"))
+        .set_global_opts(
+            title_opts=opts.TitleOpts(
+                title="Dendrogram",
+                subtitle="Hierarchical Clustering",
+                title_textstyle_opts=opts.TextStyleOpts(color="black"),
+            ),
+            tooltip_opts=opts.TooltipOpts(trigger="item", formatter="{b}")  # Customizing tooltip
+        )
     )
 
-    # 保存树状图为HTML文件
+    # Save the dendrogram as an HTML file
     dendrogram_html_filename = 'dendrogram_chart.html'
     tree_chart.render(path=os.path.join('static', dendrogram_html_filename))
 
-    # 重定向到树状图页面
+    # Redirect to the page displaying the dendrogram
     return render_template('dendrogram.html', dendrogram_html_filename=dendrogram_html_filename, filename=filename)
 
 
