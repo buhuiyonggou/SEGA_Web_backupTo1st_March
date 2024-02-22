@@ -5,11 +5,6 @@ from flask import Flask, render_template, request, redirect, flash, jsonify, red
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
-from pyecharts import options as opts
-from pyecharts.charts import Tree
-from scipy.spatial.distance import squareform
-from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
-import json
 
 app = Flask(__name__)
 
@@ -52,7 +47,7 @@ def load_graph_data(filepath, file_extension):
             raise ValueError("Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
 
         # Sort by 'Weight' in descending order and select top 5000 rows
-        df = df.sort_values(by='Weight', ascending=False).head(3000)
+        # df = df.sort_values(by='Weight', ascending=False).head(3000)
 
         # Create graph from dataframe
         G = nx.Graph()
@@ -80,7 +75,7 @@ def upload_user_data():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-          
+
     return render_template('graphSAGE.html')
 
 @app.route('/analyze')
@@ -102,7 +97,7 @@ def upload_file():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
+
             return render_template('analyze.html', filename=filename)
     return render_template('upload.html')
 
@@ -195,76 +190,6 @@ def find_shortest_path():
     unique_filename = draw_shortest_path_graph(H, path)
 
     return jsonify({'graph_html_path': f'/static/{unique_filename}'})
-
-
-@app.route('/show_dendrogram/<filename>')
-def show_dendrogram(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    _, file_extension = os.path.splitext(filename)
-
-    # 加载数据并创建图G
-    df, G = load_graph_data(file_path, file_extension)
-
-    if G is None:
-        flash('Error loading graph data.', 'danger')
-        return redirect(url_for('upload_file'))
-
-    # 使用Graph的邻接矩阵，但需要转换为距离矩阵
-    # 这里我们直接从G计算距离矩阵
-    distance_matrix = nx.floyd_warshall_numpy(G, weight='weight')
-    # 因为floyd_warshall_numpy返回的是numpy数组，我们需要将其转换为适合linkage函数的格式
-    Z = linkage(squareform(distance_matrix, checks=False), method='complete')
-
-    # 转换Z为树结构的JSON
-    dendrogram_json = convert_to_dendrogram_json(Z, list(G.nodes()))
-
-    # 保存dendrogram_json到文件
-    dendrogram_json_path = os.path.join('static', 'dendrogram.json')
-    with open(dendrogram_json_path, 'w') as f:
-        json.dump(dendrogram_json, f)
-
-    # 使用Pyecharts生成树状图
-    tree_chart = (
-        Tree(init_opts=opts.InitOpts(width="100%", height="800px"))
-        .add("", [dendrogram_json], collapse_interval=9)
-        .set_global_opts(title_opts=opts.TitleOpts(title="Dendrogram"))
-    )
-
-    # 保存树状图为HTML文件
-    tree_html_path = os.path.join('static', 'dendrogram_chart.html')
-    tree_chart.render(tree_html_path)
-
-    # 重定向到树状图页面
-    return redirect(url_for('static', filename='dendrogram_chart.html'))
-
-
-def convert_to_dendrogram_json(Z, labels):
-    # Convert the linkage matrix into a tree structure.
-    tree = to_tree(Z, rd=False)
-
-    def count_leaves(node):
-        # Recursively count the leaves under a node
-        if node.is_leaf():
-            return 1
-        return count_leaves(node.left) + count_leaves(node.right)
-
-    # Recursive function to build the JSON structure
-    def build_json(node):
-        if node.is_leaf():
-            # For leaf nodes, use the provided labels
-            return {"name": labels[node.id]}
-        else:
-            # For internal nodes, generate a name that includes the cluster size
-            size = count_leaves(node)
-            name = f"Cluster of {size}"
-            # Recursively build the JSON for children
-            return {
-                "name": name,
-                "children": [build_json(node.left), build_json(node.right)]
-            }
-
-    # Build and return the JSON structure
-    return build_json(tree)
 
 
 if __name__ == '__main__':
