@@ -7,6 +7,7 @@ from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
 from pyecharts import options as opts
 from pyecharts.charts import Tree
+from pyecharts.globals import ThemeType
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
 import json
@@ -52,7 +53,7 @@ def load_graph_data(filepath, file_extension):
             raise ValueError("Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
 
         # Sort by 'Weight' in descending order and select top 5000 rows
-        df = df.sort_values(by='Weight', ascending=False).head(3000)
+        # df = df.sort_values(by='Weight', ascending=False).head(3000)
 
         # Create graph from dataframe
         G = nx.Graph()
@@ -80,7 +81,7 @@ def upload_user_data():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-          
+
     return render_template('graphSAGE.html')
 
 @app.route('/analyze')
@@ -102,7 +103,7 @@ def upload_file():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
+
             return render_template('analyze.html', filename=filename)
     return render_template('upload.html')
 
@@ -225,17 +226,19 @@ def show_dendrogram(filename):
 
     # 使用Pyecharts生成树状图
     tree_chart = (
-        Tree(init_opts=opts.InitOpts(width="100%", height="800px"))
-        .add("", [dendrogram_json], collapse_interval=9)
-        .set_global_opts(title_opts=opts.TitleOpts(title="Dendrogram"))
+        Tree(init_opts=opts.InitOpts(width="1200px", height="900px", theme=ThemeType.LIGHT))
+        .add("", [dendrogram_json], collapse_interval=10, initial_tree_depth=30, is_roam=True,
+             symbol="circle", label_opts=opts.LabelOpts(font_size=7)
+             )
+        # .set_global_opts(title_opts=opts.TitleOpts(title="Dendrogram"))
     )
 
     # 保存树状图为HTML文件
-    tree_html_path = os.path.join('static', 'dendrogram_chart.html')
-    tree_chart.render(tree_html_path)
+    dendrogram_html_filename = 'dendrogram_chart.html'
+    tree_chart.render(path=os.path.join('static', dendrogram_html_filename))
 
     # 重定向到树状图页面
-    return redirect(url_for('static', filename='dendrogram_chart.html'))
+    return render_template('dendrogram.html', dendrogram_html_filename=dendrogram_html_filename, filename=filename)
 
 
 def convert_to_dendrogram_json(Z, labels):
