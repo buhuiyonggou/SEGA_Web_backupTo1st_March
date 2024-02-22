@@ -68,6 +68,7 @@
         <div class="mt-4">
             <button id="fullAnalysisButton" class="btn btn-primary btn-block" onclick="handleFullAnalysis()">Full Network Analysis</button>
             <button id="topCommunitiesButton" class="btn btn-secondary btn-block" onclick="promptTopNCommunities()">Top N Communities Analysis</button>
+            <button id="showDendrogramButton" class="btn btn-info btn-block" onclick="showDendrogram()">Hierarchy Analysis (Dendrogram)</button>
         </div>
 
         <!-- Hidden Form for Top N Communities -->
@@ -113,6 +114,10 @@
                     buttons[i].disabled = false;
                 }
             }
+        }
+        function showDendrogram() {
+            disableButtonsAndShowWaitMessage();
+            window.location.href = "{{ url_for('show_dendrogram', filename=filename) }}";
         }
     </script>
 </body>

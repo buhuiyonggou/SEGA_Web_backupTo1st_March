@@ -5,6 +5,9 @@ from flask import Flask, render_template, request, redirect, flash, jsonify, red
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
+import json
 
 app = Flask(__name__)
 
@@ -79,6 +82,7 @@ def upload_file():
             return render_template('analyze.html', filename=filename)
     return render_template('upload.html')
 
+
 @app.route('/show_graph/<filename>')
 def network_graph(filename):
     """Display the network graph based on selected algorithms."""
@@ -102,7 +106,8 @@ def network_graph(filename):
 
     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename,
+                           community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
@@ -139,7 +144,8 @@ def show_top_communities(filename):
 
     graph_html_path = draw_graph_with_pyvis(H, centrality, community_map)
 
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename,
+                           community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/find_shortest_path', methods=['POST'])
@@ -167,12 +173,64 @@ def find_shortest_path():
     return jsonify({'graph_html_path': f'/static/{unique_filename}'})
 
 
+@app.route('/show_dendrogram/<filename>')
+def show_dendrogram(filename):
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    _, file_extension = os.path.splitext(filename)
+
+    # 使用修改后的 load_graph_data 函数
+    df, G = load_graph_data(file_path, file_extension)
+
+    if G is None:
+        flash('Error loading graph data.', 'danger')
+        return redirect(url_for('upload_file'))
+
+    # 计算层次聚类并转换为 JSON
+    Z = linkage(squareform(nx.adjacency_matrix(G).toarray()), method='complete')
+    dendrogram_json = convert_to_dendrogram_json(Z, list(G.nodes()))  # 这是一个假设的函数
+
+    # 将树状图数据保存到 JSON 文件或直接传递给前端
+    with open('static/dendrogram.json', 'w') as f:
+        json.dump(dendrogram_json, f)
+
+    return render_template('dendrogram.html', filename=filename)
+
+
+def convert_to_dendrogram_json(Z, labels):
+    # Convert the linkage matrix into a tree structure.
+    tree = to_tree(Z, rd=False)
+
+    def count_leaves(node):
+        # Recursively count the leaves under a node
+        if node.is_leaf():
+            return 1
+        return count_leaves(node.left) + count_leaves(node.right)
+
+    # Recursive function to build the JSON structure
+    def build_json(node):
+        if node.is_leaf():
+            # For leaf nodes, use the provided labels
+            return {"name": labels[node.id]}
+        else:
+            # For internal nodes, generate a name that includes the cluster size
+            size = count_leaves(node)
+            name = f"Cluster of {size}"
+            # Recursively build the JSON for children
+            return {
+                "name": name,
+                "children": [build_json(node.left), build_json(node.right)]
+            }
+
+    # Build and return the JSON structure
+    return build_json(tree)
+
+
+
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)
     # app.run(host='0.0.0.0', debug=True)
-
 
 # @app.route('/delete_node/<filename>', methods=['POST'])
 # def delete_node(filename):
