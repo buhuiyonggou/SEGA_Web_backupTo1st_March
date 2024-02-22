@@ -7,7 +7,7 @@ from sklearn.impute import SimpleImputer
 
 CONNECT_AMONG_SUB_DEPART = 0.25
 CONNECT_AMONG_DEPARTMENT = 0.05
-CONNECT_AMONG_ORGANZATION = 0.01
+CONNECT_AMONG_ORGANZATION = 0.02
 
 def load_data(file_path):
     if file_path.endswith('.csv'):
