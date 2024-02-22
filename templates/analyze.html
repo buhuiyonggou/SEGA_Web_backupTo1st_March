@@ -1,119 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analyze Network</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-        body {
-            padding-top: 40px;
-            background-color: #f8f9fa;
-        }
-        .container {
-            max-width: 700px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3 {
-            color: #333;
-        }
-        .form-control, .btn {
-            margin-top: 10px;
-        }
-        .legend {
-            margin-top: 20px;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            color: #495057;
-        }
+      body {
+        padding-top: 40px;
+        background-color: #f8f9fa;
+      }
+      .container {
+        max-width: 700px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1,
+      h2,
+      h3 {
+        color: #333;
+      }
+      .form-control,
+      .btn {
+        margin-top: 10px;
+      }
+      .legend {
+        margin-top: 20px;
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        color: #495057;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container text-center">
-        <h1>File Uploaded Successfully!</h1>
-        <h2>Choose Your Analysis Algorithm</h2>
+      <h1>File Uploaded Successfully!</h1>
+      <h2>Choose Your Analysis Algorithm</h2>
 
-        <!-- Centrality Algorithm Selection -->
-        <div class="mt-4">
-            <h3>Select Centrality Algorithm:</h3>
-            <select id="centralityAlgorithm" class="form-control">
-                <option value="pagerank">PageRank</option>
-                <option value="betweenness">Betweenness</option>
-                <option value="closeness">Closeness</option>
-                <option value="degree">Degree</option>
-                <option value="eigenvector">Eigenvector</option>
-                <!-- <option value="katz">Katz</option> -->
-                <option value="load">Load</option>
-                <!-- <option value="harmonic">Harmonic</option> -->
-            </select>
-        </div>
+      <!-- Centrality Algorithm Selection -->
+      <div class="mt-4">
+        <h3>Select Centrality Algorithm:</h3>
+        <select id="centralityAlgorithm" class="form-control">
+          <option value="pagerank">PageRank</option>
+          <option value="betweenness">Betweenness</option>
+          <option value="closeness">Closeness</option>
+          <option value="degree">Degree</option>
+          <option value="eigenvector">Eigenvector</option>
+          <!-- <option value="katz">Katz</option> -->
+          <option value="load">Load</option>
+          <!-- <option value="harmonic">Harmonic</option> -->
+        </select>
+      </div>
 
-        <!-- Community Detection Algorithm Selection -->
-        <div class="mt-4">
-            <h3>Select Community Detection Algorithm:</h3>
-            <select id="communityAlgorithm" class="form-control">
-                <option value="louvain">Louvain</option>
-                <option value="greedy_modularity">Greedy Modularity</option>
-                <option value="label_propagation">Label Propagation</option>
-                <option value="fluid">Fluid Communities</option>
-                <option value="girvan_newman">Girvan-Newman</option>
-            </select>
-        </div>
+      <!-- Community Detection Algorithm Selection -->
+      <div class="mt-4">
+        <h3>Select Community Detection Algorithm:</h3>
+        <select id="communityAlgorithm" class="form-control">
+          <option value="louvain">Louvain</option>
+          <option value="greedy_modularity">Greedy Modularity</option>
+          <option value="label_propagation">Label Propagation</option>
+          <option value="fluid">Fluid Communities</option>
+          <option value="girvan_newman">Girvan-Newman</option>
+        </select>
+      </div>
 
-        <!-- Action Buttons -->
-        <div class="mt-4">
-            <button id="fullAnalysisButton" class="btn btn-primary btn-block" onclick="handleFullAnalysis()">Full Network Analysis</button>
-            <button id="topCommunitiesButton" class="btn btn-secondary btn-block" onclick="promptTopNCommunities()">Top N Communities Analysis</button>
-        </div>
+      <!-- Action Buttons -->
+      <div class="mt-4">
+        <button
+          id="fullAnalysisButton"
+          class="btn btn-primary btn-block"
+          onclick="handleFullAnalysis()"
+        >
+          Full Network Analysis
+        </button>
+        <button
+          id="topCommunitiesButton"
+          class="btn btn-secondary btn-block"
+          onclick="promptTopNCommunities()"
+        >
+          Top N Communities Analysis
+        </button>
+        <button
+          id="showDendrogramButton"
+          class="btn btn-info btn-block"
+          onclick="showDendrogram()"
+        >
+          Hierarchy Analysis (Dendrogram)
+        </button>
+      </div>
 
-        <!-- Hidden Form for Top N Communities -->
-        <form id="topNForm" action="{{ url_for('show_top_communities', filename=filename) }}" method="post" style="display: none;">
-            <input type="hidden" id="topN" name="topN">
-            <input type="hidden" id="centralityAlgorithmInput" name="centrality">
-            <input type="hidden" id="communityAlgorithmInput" name="community">
-        </form>
+      <!-- Hidden Form for Top N Communities -->
+      <form
+        id="topNForm"
+        action="{{ url_for('show_top_communities', filename=filename) }}"
+        method="post"
+        style="display: none"
+      >
+        <input type="hidden" id="topN" name="topN" />
+        <input type="hidden" id="centralityAlgorithmInput" name="centrality" />
+        <input type="hidden" id="communityAlgorithmInput" name="community" />
+      </form>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        function disableButtonsAndShowWaitMessage() {
-            var buttons = document.querySelectorAll('input[type="button"]');
-            for (var i = 0; i < buttons.length; i++) {
-                buttons[i].value = 'Please wait...';
-                buttons[i].disabled = true;
-            }
+      function disableButtonsAndShowWaitMessage() {
+        var buttons = document.querySelectorAll('input[type="button"]');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].value = "Please wait...";
+          buttons[i].disabled = true;
         }
+      }
 
-        function handleFullAnalysis() {
-            disableButtonsAndShowWaitMessage();
-            var centralityAlgorithm = document.getElementById('centralityAlgorithm').value;
-            var communityAlgorithm = document.getElementById('communityAlgorithm').value;
-            window.location.href = "{{ url_for('network_graph', filename=filename) }}?centrality=" + centralityAlgorithm + "&community=" + communityAlgorithm;
-        }
+      function handleFullAnalysis() {
+        disableButtonsAndShowWaitMessage();
+        var centralityAlgorithm = document.getElementById(
+          "centralityAlgorithm"
+        ).value;
+        var communityAlgorithm =
+          document.getElementById("communityAlgorithm").value;
+        window.location.href =
+          "{{ url_for('network_graph', filename=filename) }}?centrality=" +
+          centralityAlgorithm +
+          "&community=" +
+          communityAlgorithm;
+      }
 
-        function promptTopNCommunities() {
-            disableButtonsAndShowWaitMessage();
-            var topN = prompt("Please enter the number of top communities you want to analyze:", "10");
-            if (topN != null) {
-                var centralityAlgorithm = document.getElementById('centralityAlgorithm').value;
-                var communityAlgorithm = document.getElementById('communityAlgorithm').value;
-                document.getElementById('topN').value = topN;
-                document.getElementById('centralityAlgorithmInput').value = centralityAlgorithm;
-                document.getElementById('communityAlgorithmInput').value = communityAlgorithm;
-                document.getElementById('topNForm').submit();
-            } else {
-                var buttons = document.querySelectorAll('input[type="button"]');
-                for (var i = 0; i < buttons.length; i++) {
-                    buttons[i].value = i === 0 ? "Full Network Analysis" : "Top N Communities Analysis";
-                    buttons[i].disabled = false;
-                }
-            }
+      function promptTopNCommunities() {
+        disableButtonsAndShowWaitMessage();
+        var topN = prompt(
+          "Please enter the number of top communities you want to analyze:",
+          "10"
+        );
+        if (topN != null) {
+          var centralityAlgorithm = document.getElementById(
+            "centralityAlgorithm"
+          ).value;
+          var communityAlgorithm =
+            document.getElementById("communityAlgorithm").value;
+          document.getElementById("topN").value = topN;
+          document.getElementById("centralityAlgorithmInput").value =
+            centralityAlgorithm;
+          document.getElementById("communityAlgorithmInput").value =
+            communityAlgorithm;
+          document.getElementById("topNForm").submit();
+        } else {
+          var buttons = document.querySelectorAll('input[type="button"]');
+          for (var i = 0; i < buttons.length; i++) {
+            buttons[i].value =
+              i === 0 ? "Full Network Analysis" : "Top N Communities Analysis";
+            buttons[i].disabled = false;
+          }
         }
+      }
+      function showDendrogram() {
+        disableButtonsAndShowWaitMessage();
+        window.location.href =
+          "{{ url_for('show_dendrogram', filename=filename) }}";
+      }
     </script>
-</body>
+  </body>
 </html>
