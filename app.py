@@ -65,8 +65,29 @@ def load_graph_data(filepath, file_extension):
         flash(str(e))  # Display the error message to the user
         return None, None  # Return None values to indicate failure
 
-
 @app.route('/', methods=['GET', 'POST'])
+def upload_user_data():
+    """Handle file uploads."""
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+          
+    return render_template('graphSAGE.html')
+
+@app.route('/analyze')
+def analyze():
+    return render_template('analyze.html')
+
+@app.route('/upload_to_vis', methods=['GET', 'POST'])
 def upload_file():
     """Handle file uploads."""
     if request.method == 'POST':
@@ -81,6 +102,7 @@ def upload_file():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+            
             return render_template('analyze.html', filename=filename)
     return render_template('upload.html')
 
