@@ -227,8 +227,8 @@ def show_dendrogram(filename):
     tree_chart = (
         Tree(init_opts=opts.InitOpts(width="1200px", height="900px", theme=ThemeType.LIGHT))
         .add("", [dendrogram_json],
-             collapse_interval=200,
-             initial_tree_depth=30,
+             collapse_interval=10,
+             initial_tree_depth=10,
              is_roam=True,
              symbol="circle",
              symbol_size=8,  # Adjust the size of the nodes
