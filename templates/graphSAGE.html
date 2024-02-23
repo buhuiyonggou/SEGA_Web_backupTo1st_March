@@ -49,8 +49,17 @@
   </head>
   <body>
     <div class="container">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-info" role="alert">
+              {% for message in messages %}
+                  <p>{{ message }}</p>
+              {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
       <h1>GraphSAGE Document Processing</h1>
-      <form id="fileUploadForm" action="/upload" method="post" enctype="multipart/form-data" class="mt-4">
+      <form id="fileUploadForm" action="/user_upload" method="post" enctype="multipart/form-data" class="mt-4">
         <div class="form-group">
           <input
             type="file"

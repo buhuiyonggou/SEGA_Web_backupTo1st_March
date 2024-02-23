@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, flash, jsonify, red
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
-from data_parse import load_raw_data
+from GraphSAGEProcessor import GraphSAGEProcessor
 
 app = Flask(__name__)
 
@@ -63,32 +63,73 @@ def load_graph_data(filepath, file_extension):
         flash(str(e))  # Display the error message to the user
         return None, None  # Return None values to indicate failure
 
-@app.route('/user_upload', methods=['GET', 'POST'])
+def data_processor(processor, node_filepath, edge_filepath = None):
+    hr_data = processor.fetch_data_from_user(node_filepath)
+    hr_edge = processor.fetch_data_from_user(edge_filepath)
+    
+    if hr_data:
+        # store index map
+        index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
+        # align name of columns 
+        hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
+        # target embedding attributes for this instance, used for creating node_index
+        attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
+        # get features with number
+        features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
+        feature_index = processor.feature_index_generator(features)
+        
+        # generate edges
+        if hr_edge:
+            edges = processor.egdes_generator(hr_data, hr_edge)
+        else:
+            edges = processor.egdes_generator(hr_data)
+        edge_index = processor.edge_index_generator(edges)
+        
+        message = processor.check_for_nan(hr_data)
+        flash(message)
+        # return indices, the mapping record, and the message
+        return (feature_index, edge_index, index_to_name_mapping, message)
+
+def get_data_with_weight(processor, process_result):
+    feature_index = process_result[0]
+    edge_index = process_result[1]
+    index_to_name_mapping = process_result[2]
+    message = process_result[3]
+    
+    scaled_weights = processor.model_training(feature_index, edge_index)
+    if scaled_weights:
+        processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
+    
+    message = "Successful!"
+    return message
+        
+
+@app.route('/', methods=['GET', 'POST'])
 def upload_user_data():
     if request.method == 'POST':
-        # Dictionary to specify how to rename the files, without specifying the extension here
-        uploaded_files_info = {
-            'employeeFile': 'employees',
-            'relationshipFile': 'relationships',
-        }
-
-        for input_name, save_as in uploaded_files_info.items():
-            file = request.files.get(input_name)
-            if file and allowed_file(file.filename):
-                # Preserve the original file extension
-                _, file_extension = os.path.splitext(file.filename)
-                # Ensure the file extension is lowercase for uniformity
-                filename = secure_filename(f"{save_as}{file_extension.lower()}")
-                filepath = os.path.join(app.config['RAW_DATA_FOLDER'], filename)
-                file.save(filepath)
-                flash(f'{input_name} uploaded successfully')
-
-                try:
-                    load_raw_data(filepath)  # Call your data processing function here
-                except ValueError as e:
-                    flash(str(e))  # Display error if file format is unsupported
-                
-        return redirect(url_for('analyze'))  # Redirect after processing
+        node_file = request.files.get('employeeFile')
+        if node_file:
+            node_filename = secure_filename(node_file.filename)
+            
+        edge_file = request.files.get('relationshipFile')
+        if edge_file:
+            edge_filename = secure_filename(edge_file.filename)
+            
+        # Save files and process
+        if node_file:
+            node_filepath = os.path.join(app.config['RAW_DATA_FOLDER'], node_filename)
+            node_file.save(node_filepath)
+            edge_filepath = None
+            if edge_file:
+                edge_filepath = os.path.join(app.config['RAW_DATA_FOLDER'], edge_filename)
+                edge_file.save(edge_filepath)    
+            try:
+                processor = GraphSAGEProcessor(node_filepath, edge_filepath)
+                processed = data_processor(processor, node_filepath, edge_filepath)
+                get_data_with_weight(processor, processed)
+            except Exception as e:
+                flash(f'Error:{str(e)}')
+        return redirect(url_for('upload_user_data'))
     
     return render_template('graphSAGE.html')
 
