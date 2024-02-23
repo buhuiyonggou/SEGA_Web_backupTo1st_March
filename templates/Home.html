@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GraphSAGE Processing</title>
+    <title>GraphSAGE and Visualization</title>
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
@@ -49,16 +49,7 @@
   </head>
   <body>
     <div class="container">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="alert alert-info" role="alert">
-              {% for message in messages %}
-                  <p>{{ message }}</p>
-              {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-      <h1>GraphSAGE Document Processing</h1>
+      <h1>Document Upload</h1>
       <form id="fileUploadForm" action="/user_upload" method="post" enctype="multipart/form-data" class="mt-4">
         <div class="form-group">
           <input
@@ -79,23 +70,15 @@
           />
           <label for="relationshipFile">Relationship File (Optional)</label>
         </div>
-        <button type="submit" class="btn btn-primary">Confirm Upload</button>
+        <form id="fileUploadForm" action="/user_upload" method="post" enctype="multipart/form-data" class="mt-4">
+          <button type="submit" class="btn btn-primary">Confirm Upload</button>
+      </form>
         </button>
         <button type="button" class="btn btn-danger" onclick="cancelUpload()">
           Cancel Upload
         </button>
       </form>
-      <div id="processMessage" class="legend" style="display: none">
-        Processing...
-      </div>
-      <button
-        id="downloadButton"
-        class="btn btn-success"
-        style="display: none"
-        onclick="downloadProcessedFile()"
-      >
-        Download Processed CSV
-      </button>
+      {% comment %} remove later {% endcomment %}
       <button
         id="goVisualizationDataUpload"
         class="btn btn-info mt-3"
@@ -111,10 +94,6 @@
       // Implement the JavaScript functions here as per your functionality requirements
       function cancelUpload() {
         document.getElementById("fileUploadForm").reset();
-      }
-
-      function downloadProcessedFile() {
-        window.location.href = "download.php";
       }
     </script>
   </body>

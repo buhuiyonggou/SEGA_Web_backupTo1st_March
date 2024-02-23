@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import networkx as nx
-from flask import Flask, render_template, request, redirect, flash, jsonify, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, flash, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
@@ -103,8 +103,11 @@ def get_data_with_weight(processor, process_result):
     message = "Successful!"
     return message
         
+@app.route('/')
+def home():
+    return render_template('Home.html')
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/user_upload', methods=['GET', 'POST'])
 def upload_user_data():
     if request.method == 'POST':
         node_file = request.files.get('employeeFile')
@@ -117,21 +120,25 @@ def upload_user_data():
             
         # Save files and process
         if node_file:
-            node_filepath = os.path.join(app.config['RAW_DATA_FOLDER'], node_filename)
-            node_file.save(node_filepath)
-            edge_filepath = None
-            if edge_file:
-                edge_filepath = os.path.join(app.config['RAW_DATA_FOLDER'], edge_filename)
-                edge_file.save(edge_filepath)    
-            try:
-                processor = GraphSAGEProcessor(node_filepath, edge_filepath)
-                processed = data_processor(processor, node_filepath, edge_filepath)
-                get_data_with_weight(processor, processed)
-            except Exception as e:
-                flash(f'Error:{str(e)}')
-        return redirect(url_for('upload_user_data'))
-    
-    return render_template('graphSAGE.html')
+            session['node_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(node_file.filename))
+            node_file.save(session['node_filepath'])
+        if edge_file:
+            session['edge_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
+            edge_file.save(session['edge_filepath'])
+        return redirect(url_for('data_process'))
+
+@app.route('/data_process')
+def data_process():
+    try:
+        node_filepath = session.get('node_filepath')
+        edge_filepath = session.get('edge_filepath')
+        if node_filepath:
+            processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
+            processed = data_processor(processor, node_filepath, edge_filepath)
+            get_data_with_weight(processor, processed)
+    except Exception as e:
+        flash(f'Error: {str(e)}')
+    return render_template('dataProcess.html')
 
 @app.route('/analyze')
 def analyze():
