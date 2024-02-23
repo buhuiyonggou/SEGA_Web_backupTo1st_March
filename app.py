@@ -5,7 +5,7 @@ from flask import Flask, session, render_template, request, redirect, flash, jso
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
-from GraphSAGEProcessor import GraphSAGEProcessor
+from DataProcessor import GraphSAGEProcessor
 
 app = Flask(__name__)
 
@@ -96,10 +96,15 @@ def get_data_with_weight(processor, process_result):
     index_to_name_mapping = process_result[2]
     message = process_result[3]
     
-    scaled_weights = processor.model_training(feature_index, edge_index)
+    scaled_weights = processor.model_training(feature_index, feature_index)
     if scaled_weights:
         processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
     
+    edges_with_weights = processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
+    
+    # Save the DataFrame to a CSV file
+    output_path = '/'+ UPLOAD_FOLDER + '/edges_with_weights.csv'
+    edges_with_weights.to_csv(output_path, index=False)
     message = "Successful!"
     return message
         
@@ -136,6 +141,7 @@ def data_process():
             processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
             processed = data_processor(processor, node_filepath, edge_filepath)
             get_data_with_weight(processor, processed)
+            data_processor(processor, node_filepath, edge_filepath)
     except Exception as e:
         flash(f'Error: {str(e)}')
     return render_template('dataProcess.html')

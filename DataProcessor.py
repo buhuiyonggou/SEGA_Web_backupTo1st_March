@@ -7,7 +7,6 @@ from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler
 from GraphSAGE import GraphSAGE
-from app import UPLOAD_FOLDER
 
 class GraphSAGEProcessor:
     def __init__(self, nodes_folder, edges_folder = None):
@@ -230,6 +229,4 @@ class GraphSAGEProcessor:
         edges_with_weights['source'] = edges_with_weights['source'].map(index_to_name_mapping)
         edges_with_weights['target'] = edges_with_weights['target'].map(index_to_name_mapping)
 
-        # Save the DataFrame to a CSV file
-        output_path = '/'+ UPLOAD_FOLDER + '/edges_with_weights.csv'
-        edges_with_weights.to_csv(output_path, index=False)
+        return edges_with_weights
