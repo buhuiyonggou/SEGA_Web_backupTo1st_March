@@ -1,11 +1,13 @@
+from werkzeug.utils import secure_filename
+import os
+import base64
+from io import BytesIO
+import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, redirect, url_for, flash
 import pandas as pd
 import networkx as nx
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
-import os
-from werkzeug.utils import secure_filename
+import matplotlib
+matplotlib.use('agg')
 
 app = Flask(__name__)
 
@@ -67,14 +69,16 @@ def load_graph_data(filepath, file_extension):
 
 
 def remove_low_degree_nodes(G, min_degree=5):
-    low_degree_nodes = [node for node, degree in G.degree() if degree < min_degree]
+    low_degree_nodes = [node for node,
+                        degree in G.degree() if degree < min_degree]
     G.remove_nodes_from(low_degree_nodes)
 
 
 def compute_centrality_and_communities(G):
     centrality = nx.pagerank(G, weight='weight')
     communities = nx.community.louvain_communities(G, weight='weight')
-    community_map = {node: i for i, community in enumerate(communities) for node in community}
+    community_map = {node: i for i, community in enumerate(
+        communities) for node in community}
     return centrality, community_map
 
 
@@ -130,7 +134,8 @@ def network_graph(filename):
 
     centrality, community_map = compute_centrality_and_communities(G)
 
-    fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
+    fig, ax = draw_graph(G, centrality, community_map,
+                         title="PageRank and Louvain")
     plot_url = save_fig_to_base64(fig)
 
     return render_template('index.html', plot_url=plot_url, filename=filename)
@@ -151,14 +156,17 @@ def show_top_communities(filename):
 
     communities = nx.community.louvain_communities(G, weight='weight')
     # 根据用户输入选择Top N个社区
-    community_scores = {i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
-    top_communities = sorted(community_scores, key=community_scores.get, reverse=True)[:top_n]
+    community_scores = {
+        i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
+    top_communities = sorted(
+        community_scores, key=community_scores.get, reverse=True)[:top_n]
 
     # 为前10个社区创建子图
     top_nodes = set().union(*(communities[i] for i in top_communities))
     H = G.subgraph(top_nodes)
 
-    fig, ax = draw_graph(H, centrality, community_map, title="Top N Communities Analysis")
+    fig, ax = draw_graph(H, centrality, community_map,
+                         title="Top N Communities Analysis")
     plot_url = save_fig_to_base64(fig)
 
     return render_template('index.html', plot_url=plot_url, filename=filename)
@@ -185,7 +193,8 @@ def delete_node(filename):
     remove_low_degree_nodes(G)
     centrality, community_map = compute_centrality_and_communities(G)
 
-    fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
+    fig, ax = draw_graph(G, centrality, community_map,
+                         title="PageRank and Louvain")
     plot_url = save_fig_to_base64(fig)
 
     return render_template('index.html', plot_url=plot_url, filename=filename)
