@@ -2,12 +2,36 @@ import pandas as pd
 import numpy as np
 from itertools import combinations
 import torch
+from torch_geometric.data import Data
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from graphSAGE import GraphSAGE
+from app import UPLOAD_FOLDER
 
 CONNECT_AMONG_SUB_DEPART = 0.25
 CONNECT_AMONG_DEPARTMENT = 0.05
-CONNECT_AMONG_ORGANZATION = 0.02
+CONNECT_AMONG_ORGANZATION = 0.01
+
+COLUMN_ALIGNMENT = {
+    'id':['id','emp_id', 'employeeid'],
+    'name': ['name', 'full_name', "employee_name", 'first_name'],
+    'department': ['department', 'depart', 'sector'],
+    'sub-depart':['sub-depart', 'sub-department', 'sub-sector','second-department'],
+    'manager': ['manager', 'supervisor', 'manager_name','managername']
+}
+
+NODE_FEATURES = {
+    'title': ['title', 'job_title', 'position','job_level'],
+    'nationality': ['nationality', 'citizen', 'citizenship'],
+    'region': ['region', 'district', 'branch', 'area'],
+    'education':['education', 'degree', 'graduate'],
+    'salary': ['salary', 'sal'],
+    'marriage_status': ['marriage_status', 'marital_status', 'marrage_status'],
+    'race': ['race', 'ethnicity'],
+    'gender': ['gender', 'sex'],
+    'employment_status': ['employment_status', 'job_status', 'employment']
+}
 
 def load_data(file_path):
     if file_path.endswith('.csv'):
@@ -20,36 +44,13 @@ def load_data(file_path):
     df.columns = df.columns.str.lower()
     return df
 
-hr_data_path = '/content/4.Human Resource Data.xlsx'
-relationship_data_path = '/content/simulated_edges_with_names.csv'
-
-hr_data = load_data(hr_data_path)
-hr_data.fillna("missing", inplace=True)
-
-relationship_data = None
-if relationship_data_path:
-  relationship_data = load_data(relationship_data_path)
-  relationship_data.fillna("missing", inplace=True)
-
-column_alignment = {
-    'id':['id','emp_id', 'employeeid'],
-    'name': ['name', 'full_name', "employee_name", 'first_name'],
-    'department': ['department', 'depart', 'sector'],
-    'sub-depart':['sub-depart', 'sub-department', 'sub-sector','second-department'],
-    'manager': ['manager', 'supervisor', 'manager_name','managername']
-}
-
-node_features = {
-    'title': ['title', 'job_title', 'position','job_level'],
-    'nationality': ['nationality', 'citizen', 'citizenship'],
-    'region': ['region', 'district', 'branch', 'area'],
-    'education':['education', 'degree', 'graduate'],
-    'salary': ['salary', 'sal'],
-    'marriage_status': ['marriage_status', 'marital_status', 'marrage_status'],
-    'race': ['race', 'ethnicity'],
-    'gender': ['gender', 'sex'],
-    'employment_status': ['employment_status', 'job_status', 'employment']
-}
+def fetch_data_from_user(file_path):
+    if file_path is None:
+        return
+    hr_data = load_data(file_path)
+    hr_data.fillna("missing", inplace=True)
+    
+    return hr_data
 
 # Function to rename columns based on expected variations
 def rename_columns_to_standard(df, column_alignment):
@@ -64,8 +65,6 @@ def rename_columns_to_standard(df, column_alignment):
                 renamed_columns[index_of_found] = standard_name
                 break  # Stop looking for other variations if one is found
     return renamed_columns
-
-hr_data.columns = rename_columns_to_standard(hr_data, column_alignment)
 
 def create_index_id_name_mapping(hr_data):
     index_to_id_name_mapping = [{
@@ -85,19 +84,14 @@ def find_actual_column_name(df, possible_names):
     return None
 
 # Mapping from your standardized property names to actual column names in hr_data
-property_to_actual = []
-
-for property_name, variations in node_features.items():
-    actual_name = find_actual_column_name(hr_data, variations)
-    if actual_name:
-        property_to_actual.append(actual_name)
-
-# check if required columns for creating edges exists
-edge_to_actual = []
-for property_name, variations in column_alignment.items():
-    actual_name = find_actual_column_name(hr_data, variations)
-    if actual_name:
-        edge_to_actual.append(actual_name)
+def generate_attributes(attrs, hr_data): 
+    property_to_actual = []
+    # check if required columns for creating edges exists
+    for property_name, variations in attrs.items():
+        actual_name = find_actual_column_name(hr_data, variations)
+        if actual_name:
+            property_to_actual.append(actual_name)
+    return property_to_actual
 
 def preprocess_data(df, node_features):
     # Compile a list of all relevant columns from node_features
@@ -122,7 +116,7 @@ def preprocess_data(df, node_features):
     return df
 
 # Re-defining the custom function to adapt to the new logic
-def manage_edge_probability(edges, dept_indices, sub_dept_info=False):
+def manage_edge_probability(edges, hr_data, dept_indices, sub_dept_info=False):
     for i, j in combinations(dept_indices, 2):
         emp_i = hr_data.iloc[i]
         emp_j = hr_data.iloc[j]
@@ -137,15 +131,6 @@ def manage_edge_probability(edges, dept_indices, sub_dept_info=False):
             if emp_i['department'] == emp_j['department']:
                 if np.random.rand() < CONNECT_AMONG_DEPARTMENT:
                     edges.append([i, j])
-
-# This optimized separate handler caters to different department cases, defaulting to 1%
-def cross_department_edge_probability(hr_data, employee_indices, probability=CONNECT_AMONG_ORGANZATION):
-    num_employees = len(hr_data)
-    employee_indices = range(num_employees)
-    for i, j in combinations(employee_indices, 2):
-        if hr_data.iloc[i]['department'] != hr_data.iloc[j]['department']:
-            if np.random.rand() < probability:
-                edges.append([i, j])
 
 # if edges are given by user, relationship_data is not None, mapping current users to edges
 def egdes_generator(hr_data, given_edges = None):
@@ -173,30 +158,81 @@ def egdes_generator(hr_data, given_edges = None):
             manage_edge_probability(edges, dept_indices, sub_dept_info=False)
   return edges
 
-# Applying the last case for handling employees from different departments
-# For simplicity, pass this section by now
-# cross_department_edge_probability(employee_indices, 0.05)
-edges = egdes_generator(hr_data, relationship_data)
+def edge_index_generator(edges):
+    edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
+    return edge_index
 
-edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
+def features_generator(hr_data, node_features, property_to_actual):
+    hr_data_parsed = preprocess_data(hr_data, node_features)
+    # Exclude 'id' and 'name' columns from features
+    feature_columns = [col for col in hr_data_parsed.columns if col in property_to_actual]
 
-len(edges)
+    features_data = hr_data[feature_columns].values
+    return features_data
 
-hr_data = preprocess_data(hr_data, node_features)
+def feature_index_generator(features):
+    feature_index = torch.tensor(features, dtype=torch.float)
+    return feature_index
 
-# Exclude 'id' and 'name' columns from features
-feature_columns = [col for col in hr_data.columns if col in property_to_actual]
+def nanCheck(hr_data,feature_index, edge_index):
+    # Check for NaN values in features
+    if torch.isnan(feature_index).any():
+        print("NaN values detected in features.")
+        nan_counts = hr_data.isna().sum()
+        print(nan_counts)
 
-features_data = hr_data[feature_columns].values
+    # Check for NaN values in edges, normally doesn't happen
+    if torch.isnan(edge_index).any():
+        print("NaN values detected in edge_index.")
 
-feature_index = torch.tensor(features_data, dtype=torch.float)
+def model_traning(feature_index, edge_index):
+    # Initialize the GraphSAGE model
+    model = GraphSAGE(in_channels=feature_index.shape[1], hidden_channels=16, out_channels=8)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-# Check for NaN values in features
-if torch.isnan(feature_index).any():
-    print("NaN values detected in features.")
-    nan_counts = hr_data.isna().sum()
-    print(nan_counts)
+    data = Data(feature_index=feature_index, edge_index=edge_index)
 
-# Check for NaN values in edges, normally doesn't happen
-if torch.isnan(edge_index).any():
-    print("NaN values detected in edge_index.")
+    # Training loop
+    for epoch in range(150):  # Number of epochs
+        model.train()
+        optimizer.zero_grad()
+        out = model(data.feature_index, data.edge_index)
+        # Example loss calculation; adjust according to your specific task
+        loss = ((out[data.edge_index[0]] - out[data.edge_index[1]]) ** 2).mean()
+        loss.backward()
+        optimizer.step()
+        if epoch % 10 == 0:
+            print(f'Epoch {epoch + 10}, Loss: {loss.item()}')
+
+    # Strategy: Scale and Normalize the Weights
+    with torch.no_grad():
+        embeddings = model(feature_index, edge_index)
+        new_weights = torch.norm(embeddings[edge_index[0]] - embeddings[edge_index[1]], dim=1)
+
+    # Initialize the scaler
+    scaler = MinMaxScaler()
+
+    # Reshape new_weights for scaling - sklearn's MinMaxScaler expects a 2D array
+    weights_reshaped = new_weights.numpy().reshape(-1, 1)
+
+    # Apply the scaler to the weights
+    scaled_weights = scaler.fit_transform(weights_reshaped).flatten()
+    
+    return scaled_weights
+
+def data_reshape(scaled_weights,edge_index, index_to_name_mapping):
+    # Create a DataFrame to export
+    edges_with_weights = pd.DataFrame(edge_index.t().numpy(), columns=['source', 'target'])
+
+    # Update the DataFrame with scaled weights
+    edges_with_weights['weight'] = scaled_weights
+
+    # Use id to map names
+    edges_with_weights['source'] = edges_with_weights['source'].map(index_to_name_mapping)
+    edges_with_weights['target'] = edges_with_weights['target'].map(index_to_name_mapping)
+
+    # Save the DataFrame to a CSV file
+    output_path = '/'+ UPLOAD_FOLDER + '/edges_with_weights.csv'
+    edges_with_weights.to_csv(output_path, index=False)
+
+    print(f'Edge weights saved to {output_path}')

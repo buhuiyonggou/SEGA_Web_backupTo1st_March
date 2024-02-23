@@ -5,13 +5,16 @@ from flask import Flask, render_template, request, redirect, flash, jsonify, red
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from data_parse import load_raw_data
 
 app = Flask(__name__)
 
 # Configuration for the file upload folder and allowed file types
 UPLOAD_FOLDER = 'uploads'
+RAW_DATA_FOLDER = 'raw_data'
 ALLOWED_EXTENSIONS = {'csv', 'xlsx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['RAW_DATA_FOLDER'] = RAW_DATA_FOLDER
 app.secret_key = 'BabaYaga'
 
 
@@ -60,22 +63,33 @@ def load_graph_data(filepath, file_extension):
         flash(str(e))  # Display the error message to the user
         return None, None  # Return None values to indicate failure
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/user_upload', methods=['GET', 'POST'])
 def upload_user_data():
-    """Handle file uploads."""
     if request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+        # Dictionary to specify how to rename the files, without specifying the extension here
+        uploaded_files_info = {
+            'employeeFile': 'employees',
+            'relationshipFile': 'relationships',
+        }
 
+        for input_name, save_as in uploaded_files_info.items():
+            file = request.files.get(input_name)
+            if file and allowed_file(file.filename):
+                # Preserve the original file extension
+                _, file_extension = os.path.splitext(file.filename)
+                # Ensure the file extension is lowercase for uniformity
+                filename = secure_filename(f"{save_as}{file_extension.lower()}")
+                filepath = os.path.join(app.config['RAW_DATA_FOLDER'], filename)
+                file.save(filepath)
+                flash(f'{input_name} uploaded successfully')
+
+                try:
+                    load_raw_data(filepath)  # Call your data processing function here
+                except ValueError as e:
+                    flash(str(e))  # Display error if file format is unsupported
+                
+        return redirect(url_for('analyze'))  # Redirect after processing
+    
     return render_template('graphSAGE.html')
 
 @app.route('/analyze')
@@ -125,8 +139,7 @@ def network_graph(filename):
 
     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename,
-                           community_algo=community_algo, centrality_algo=centrality_algo)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/show_top_communities/<filename>', methods=['GET', 'POST'])
@@ -163,8 +176,7 @@ def show_top_communities(filename):
 
     graph_html_path = draw_graph_with_pyvis(H, centrality, community_map)
 
-    return render_template('index.html', graph_html_path=graph_html_path, filename=filename,
-                           community_algo=community_algo, centrality_algo=centrality_algo)
+    return render_template('index.html', graph_html_path=graph_html_path, filename=filename, community_algo=community_algo, centrality_algo=centrality_algo)
 
 
 @app.route('/find_shortest_path', methods=['POST'])
@@ -195,6 +207,9 @@ def find_shortest_path():
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
+    if not os.path.exists(RAW_DATA_FOLDER):
+        os.makedirs(RAW_DATA_FOLDER)
+        
     app.run(debug=True)
     # app.run(host='0.0.0.0', debug=True)
 
