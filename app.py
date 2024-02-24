@@ -76,10 +76,10 @@ def data_processor(processor, node_filepath, edge_filepath = None):
     hr_edge = processor.fetch_data_from_user(edge_filepath)
     
     if hr_data:
-        # store index map
-        index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
         # align name of columns 
         hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
+        # store index map
+        index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
         # target embedding attributes for this instance, used for creating node_index
         attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
         # get features with number
@@ -146,10 +146,30 @@ def data_process():
         node_filepath = session.get('node_filepath')
         edge_filepath = session.get('edge_filepath')
         if node_filepath:
+            if edge_filepath is None:
+                flash("upload successful. Upload relationship can increase model accuracy!")
+            else:
+                flash("upload successful!")
+        if node_filepath:
             processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
-            processed = data_processor(processor, node_filepath, edge_filepath)
-            get_data_with_weight(processor, processed)
-            data_processor(processor, node_filepath, edge_filepath)
+            
+            hr_data = processor.fetch_data_from_user(node_filepath)
+            hr_edge = processor.fetch_data_from_user(edge_filepath)
+            
+            if not hr_data.empty:
+                hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
+                # store index map
+                index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
+                # align name of columns 
+                # # target embedding attributes for this instance, used for creating node_index
+                # attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
+                # # get features with number
+                # features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
+                # feature_index = processor.feature_index_generator(features)
+        print(index_to_name_mapping)
+            # processed = data_processor(processor, node_filepath, edge_filepath)
+            # get_data_with_weight(processor, processed)
+            # data_processor(processor, node_filepath, edge_filepath)
     except Exception as e:
         flash(f'Error: {str(e)}')
     return render_template('dataProcess.html')
