@@ -49,34 +49,15 @@
   </head>
   <body>
     <div class="container">
+      {% with messages = get_flashed_messages() %} {% if messages %}
+      <div class="alert alert-info" role="alert">
+        {% for message in messages %}
+        <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
       <h1>GraphSAGE Document Processing</h1>
-      <form id="fileUploadForm" enctype="multipart/form-data" class="mt-4">
-        <div class="form-group">
-          <input
-            type="file"
-            class="form-control-file"
-            id="employeeFile"
-            name="employeeFile"
-            required
-          />
-          <label for="employeeFile">Employee Document (Required)</label>
-        </div>
-        <div class="form-group">
-          <input
-            type="file"
-            class="form-control-file"
-            id="relationshipFile"
-            name="relationshipFile"
-          />
-          <label for="relationshipFile">Relationship File (Optional)</label>
-        </div>
-        <button type="button" class="btn btn-primary" onclick="confirmUpload()">
-          Confirm Upload
-        </button>
-        <button type="button" class="btn btn-danger" onclick="cancelUpload()">
-          Cancel Upload
-        </button>
-      </form>
+
       <div id="processMessage" class="legend" style="display: none">
         Processing...
       </div>
@@ -95,44 +76,19 @@
       >
         Go to Analyze
       </button>
+      <button
+        id="goHomePage"
+        class="btn btn-info mt-3"
+        onclick="window.location.href='/'"
+      >
+        Go Back to Upload
+      </button>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
       // Implement the JavaScript functions here as per your functionality requirements
-      function confirmUpload() {
-        var employeeFile = document.getElementById("employeeFile").files[0];
-        var relationshipFile =
-          document.getElementById("relationshipFile").files[0];
-        if (!employeeFile) {
-          alert("Please upload the employee document");
-          return;
-        }
-        var formData = new FormData();
-        formData.append("employeeFile", employeeFile);
-        if (relationshipFile) {
-          formData.append("relationshipFile", relationshipFile);
-        }
-        document.getElementById("fileUploadForm").style.display = "none";
-        document.getElementById("processMessage").style.display = "block";
-        $.ajax({
-          url: "process.php",
-          type: "POST",
-          data: formData,
-          contentType: false,
-          processData: false,
-          success: function (response) {
-            document.getElementById("processMessage").style.display = "none";
-            document.getElementById("downloadButton").style.display = "block";
-          },
-        });
-      }
-
-      function cancelUpload() {
-        document.getElementById("fileUploadForm").reset();
-      }
-
       function downloadProcessedFile() {
         window.location.href = "download.php";
       }

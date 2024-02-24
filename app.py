@@ -5,6 +5,12 @@ from flask import Flask, session, render_template, request, redirect, flash, jso
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from pyecharts import options as opts
+from pyecharts.charts import Tree
+from pyecharts.globals import ThemeType
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
+import json
 from DataProcessor import GraphSAGEProcessor
 
 app = Flask(__name__)
@@ -49,8 +55,7 @@ def load_graph_data(filepath, file_extension):
 
         # Check if required columns are present
         if not {'Source', 'Target', 'Weight'}.issubset(df.columns):
-            raise ValueError(
-                "Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
+            raise ValueError("Dataframe must contain 'Source', 'Target', and 'Weight' columns.")
 
         # Sort by 'Weight' in descending order and select top 5000 rows
         # df = df.sort_values(by='Weight', ascending=False).head(3000)
@@ -66,63 +71,54 @@ def load_graph_data(filepath, file_extension):
         flash(str(e))  # Display the error message to the user
         return None, None  # Return None values to indicate failure
 
-
-def data_processor(processor, node_filepath, edge_filepath=None):
+def data_processor(processor, node_filepath, edge_filepath = None):
     hr_data = processor.fetch_data_from_user(node_filepath)
     hr_edge = processor.fetch_data_from_user(edge_filepath)
-
+    
     if hr_data:
         # store index map
         index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
-        # align name of columns
-        hr_data.columns = processor.rename_columns_to_standard(
-            hr_data, processor.COLUMN_ALIGNMENT)
+        # align name of columns 
+        hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
         # target embedding attributes for this instance, used for creating node_index
-        attri_group = processor.generate_attributes(
-            processor.NODE_FEATURES, hr_data)
+        attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
         # get features with number
-        features = processor.features_generator(
-            hr_data, processor.NODE_FEATURES, attri_group)
+        features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
         feature_index = processor.feature_index_generator(features)
-
+        
         # generate edges
         if hr_edge:
             edges = processor.egdes_generator(hr_data, hr_edge)
         else:
             edges = processor.egdes_generator(hr_data)
         edge_index = processor.edge_index_generator(edges)
-
+        
         message = processor.check_for_nan(hr_data)
         flash(message)
         # return indices, the mapping record, and the message
         return (feature_index, edge_index, index_to_name_mapping, message)
-
 
 def get_data_with_weight(processor, process_result):
     feature_index = process_result[0]
     edge_index = process_result[1]
     index_to_name_mapping = process_result[2]
     message = process_result[3]
-
+    
     scaled_weights = processor.model_training(feature_index, feature_index)
     if scaled_weights:
-        processor.data_reshape(
-            scaled_weights, edge_index, index_to_name_mapping)
-
-    edges_with_weights = processor.data_reshape(
-        scaled_weights, edge_index, index_to_name_mapping)
-
+        processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
+    
+    edges_with_weights = processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
+    
     # Save the DataFrame to a CSV file
-    output_path = '/' + UPLOAD_FOLDER + '/edges_with_weights.csv'
+    output_path = '/'+ UPLOAD_FOLDER + '/edges_with_weights.csv'
     edges_with_weights.to_csv(output_path, index=False)
     message = "Successful!"
     return message
-
-
+        
 @app.route('/')
 def home():
     return render_template('Home.html')
-
 
 @app.route('/user_upload', methods=['GET', 'POST'])
 def upload_user_data():
@@ -130,22 +126,19 @@ def upload_user_data():
         node_file = request.files.get('employeeFile')
         if node_file:
             node_filename = secure_filename(node_file.filename)
-
+            
         edge_file = request.files.get('relationshipFile')
         if edge_file:
             edge_filename = secure_filename(edge_file.filename)
-
+            
         # Save files and process
         if node_file:
-            session['node_filepath'] = os.path.join(
-                app.config['RAW_DATA_FOLDER'], secure_filename(node_file.filename))
+            session['node_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(node_file.filename))
             node_file.save(session['node_filepath'])
         if edge_file:
-            session['edge_filepath'] = os.path.join(
-                app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
+            session['edge_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
             edge_file.save(session['edge_filepath'])
         return redirect(url_for('data_process'))
-
 
 @app.route('/data_process')
 def data_process():
@@ -153,8 +146,7 @@ def data_process():
         node_filepath = session.get('node_filepath')
         edge_filepath = session.get('edge_filepath')
         if node_filepath:
-            processor = GraphSAGEProcessor(
-                node_filepath, edge_filepath if edge_filepath else None)
+            processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
             processed = data_processor(processor, node_filepath, edge_filepath)
             get_data_with_weight(processor, processed)
             data_processor(processor, node_filepath, edge_filepath)
@@ -162,11 +154,9 @@ def data_process():
         flash(f'Error: {str(e)}')
     return render_template('dataProcess.html')
 
-
 @app.route('/analyze')
 def analyze():
     return render_template('analyze.html')
-
 
 @app.route('/upload_to_vis', methods=['GET', 'POST'])
 def upload_file():
@@ -201,15 +191,13 @@ def network_graph(filename):
 
     if G is None:  # Check if G is None, indicating an error occurred
         # flash('File format error. Please upload a valid file.', 'danger')
-        # Redirect the user to upload page
-        return redirect(url_for('upload_file'))
+        return redirect(url_for('upload_file'))  # Redirect the user to upload page
 
     # remove_low_degree_nodes(G)
 
     centrality = calculate_centrality(G, centrality_algo)
     communities = detect_communities(G, community_algo)
-    community_map = {node: i for i, community in enumerate(
-        communities) for node in community}
+    community_map = {node: i for i, community in enumerate(communities) for node in community}
 
     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
 
@@ -221,10 +209,8 @@ def show_top_communities(filename):
     """Show top communities based on the selected algorithms."""
     if request.method == 'POST':
         top_n = int(request.form.get('topN', 10))
-        # Use request.form for POST data
-        centrality_algo = request.form.get('centrality', 'pagerank')
-        # Use request.form for POST data
-        community_algo = request.form.get('community', 'louvain')
+        centrality_algo = request.form.get('centrality', 'pagerank')  # Use request.form for POST data
+        community_algo = request.form.get('community', 'louvain')  # Use request.form for POST data
     else:
         top_n = 10
         centrality_algo = 'pagerank'
@@ -236,20 +222,16 @@ def show_top_communities(filename):
 
     if G is None:  # Check if G is None, indicating an error occurred
         # flash('File format error. Please upload a valid file.', 'danger')
-        # Redirect the user to upload page
-        return redirect(url_for('upload_file'))
+        return redirect(url_for('upload_file'))  # Redirect the user to upload page
 
     # remove_low_degree_nodes(G)
 
     centrality = calculate_centrality(G, centrality_algo)
     communities = detect_communities(G, community_algo)
-    community_map = {node: i for i, community in enumerate(
-        communities) for node in community}
+    community_map = {node: i for i, community in enumerate(communities) for node in community}
 
-    community_scores = {
-        i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
-    top_communities = sorted(
-        community_scores, key=community_scores.get, reverse=True)[:top_n]
+    community_scores = {i: sum(centrality[node] for node in com) for i, com in enumerate(communities)}
+    top_communities = sorted(community_scores, key=community_scores.get, reverse=True)[:top_n]
 
     top_nodes = set().union(*(communities[i] for i in top_communities))
     H = G.subgraph(top_nodes)
@@ -278,19 +260,112 @@ def find_shortest_path():
     # Invert weights to reflect closeness instead of distance
     H = invert_weights(G)
 
-    path = nx.shortest_path(H, source=nodeStart,
-                            target=nodeEnd, weight='weight')
+    path = nx.shortest_path(H, source=nodeStart, target=nodeEnd, weight='weight')
     unique_filename = draw_shortest_path_graph(H, path)
 
     return jsonify({'graph_html_path': f'/static/{unique_filename}'})
 
+@app.route('/show_dendrogram/<filename>')
+def show_dendrogram(filename):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    _, file_extension = os.path.splitext(filename)
+
+    # Load the graph data from the file
+    df, G = load_graph_data(file_path, file_extension)
+    # If the graph is not loaded successfully, redirect to upload page
+    if G is None:
+        flash('Error loading graph data.', 'danger')
+        return redirect(url_for('upload_file'))
+
+    # Compute the distance matrix directly from graph G
+    distance_matrix = nx.floyd_warshall_numpy(G, weight='weight')
+    # Convert the numpy array returned by floyd_warshall_numpy to a format suitable for the linkage function
+    Z = linkage(squareform(distance_matrix, checks=False), method='complete')
+
+    # Convert the linkage matrix Z into a JSON tree structure
+    dendrogram_json = convert_to_dendrogram_json(Z, list(G.nodes()))
+
+    # Save the dendrogram_json to a file
+    dendrogram_json_path = os.path.join('static', 'dendrogram.json')
+    with open(dendrogram_json_path, 'w') as f:
+        json.dump(dendrogram_json, f)
+
+    # Use Pyecharts to generate a dendrogram
+    tree_chart = (
+        Tree(init_opts=opts.InitOpts(width="1200px", height="900px", theme=ThemeType.LIGHT))
+        .add("", [dendrogram_json],
+             collapse_interval=10,
+             initial_tree_depth=10,
+             is_roam=True,
+             symbol="circle",
+             symbol_size=8,  # Adjust the size of the nodes
+             label_opts=opts.LabelOpts(
+                 font_size=10,
+                 color="#fa8072",  # Darker color for labels for better readability
+                 font_style="normal",
+                 font_weight="bold",
+                 position="right"  # Adjust label position if needed
+             ),
+             # leaves_label_opts=opts.LabelOpts(
+             #     color="#fff",  # Light color for leaf labels if needed
+             #     position="right",
+             #     horizontal_align="right",
+             #     vertical_align="middle",
+             #     rotate=-90
+             # ),
+             )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(
+                title="Dendrogram",
+                subtitle="Hierarchical Clustering",
+                title_textstyle_opts=opts.TextStyleOpts(color="black"),
+            ),
+            tooltip_opts=opts.TooltipOpts(trigger="item", formatter="{b}")  # Customizing tooltip
+        )
+    )
+
+    # Save the dendrogram as an HTML file
+    dendrogram_html_filename = 'dendrogram_chart.html'
+    tree_chart.render(path=os.path.join('static', dendrogram_html_filename))
+
+    # Redirect to the page displaying the dendrogram
+    return render_template('dendrogram.html', dendrogram_html_filename=dendrogram_html_filename, filename=filename)
+
+
+def convert_to_dendrogram_json(Z, labels):
+    # Convert the linkage matrix into a tree structure.
+    tree = to_tree(Z, rd=False)
+
+    def count_leaves(node):
+        # Recursively count the leaves under a node
+        if node.is_leaf():
+            return 1
+        return count_leaves(node.left) + count_leaves(node.right)
+
+    # Recursive function to build the JSON structure
+    def build_json(node):
+        if node.is_leaf():
+            # For leaf nodes, use the provided labels
+            return {"name": labels[node.id]}
+        else:
+            # For internal nodes, generate a name that includes the cluster size
+            size = count_leaves(node)
+            name = f"Cluster of {size}"
+            # Recursively build the JSON for children
+            return {
+                "name": name,
+                "children": [build_json(node.left), build_json(node.right)]
+            }
+
+    # Build and return the JSON structure
+    return build_json(tree)
 
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     if not os.path.exists(RAW_DATA_FOLDER):
         os.makedirs(RAW_DATA_FOLDER)
-
+        
     app.run(debug=True)
     # app.run(host='0.0.0.0', debug=True)
 
