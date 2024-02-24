@@ -6,3 +6,5 @@ xlsx: Adjacent Matrix (Cell Value=Weight)
 pip install pandas openpyxl
 pip install pyvis
 pip install pyecharts
+pip install torch
+pip install torch_geometric
