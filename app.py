@@ -5,6 +5,12 @@ from flask import Flask, session, render_template, request, redirect, flash, jso
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
+from pyecharts import options as opts
+from pyecharts.charts import Tree
+from pyecharts.globals import ThemeType
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
+import json
 from DataProcessor import GraphSAGEProcessor
 
 app = Flask(__name__)
@@ -259,6 +265,100 @@ def find_shortest_path():
 
     return jsonify({'graph_html_path': f'/static/{unique_filename}'})
 
+@app.route('/show_dendrogram/<filename>')
+def show_dendrogram(filename):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    _, file_extension = os.path.splitext(filename)
+
+    # Load the graph data from the file
+    df, G = load_graph_data(file_path, file_extension)
+    # If the graph is not loaded successfully, redirect to upload page
+    if G is None:
+        flash('Error loading graph data.', 'danger')
+        return redirect(url_for('upload_file'))
+
+    # Compute the distance matrix directly from graph G
+    distance_matrix = nx.floyd_warshall_numpy(G, weight='weight')
+    # Convert the numpy array returned by floyd_warshall_numpy to a format suitable for the linkage function
+    Z = linkage(squareform(distance_matrix, checks=False), method='complete')
+
+    # Convert the linkage matrix Z into a JSON tree structure
+    dendrogram_json = convert_to_dendrogram_json(Z, list(G.nodes()))
+
+    # Save the dendrogram_json to a file
+    dendrogram_json_path = os.path.join('static', 'dendrogram.json')
+    with open(dendrogram_json_path, 'w') as f:
+        json.dump(dendrogram_json, f)
+
+    # Use Pyecharts to generate a dendrogram
+    tree_chart = (
+        Tree(init_opts=opts.InitOpts(width="1200px", height="900px", theme=ThemeType.LIGHT))
+        .add("", [dendrogram_json],
+             collapse_interval=10,
+             initial_tree_depth=10,
+             is_roam=True,
+             symbol="circle",
+             symbol_size=8,  # Adjust the size of the nodes
+             label_opts=opts.LabelOpts(
+                 font_size=10,
+                 color="#fa8072",  # Darker color for labels for better readability
+                 font_style="normal",
+                 font_weight="bold",
+                 position="right"  # Adjust label position if needed
+             ),
+             # leaves_label_opts=opts.LabelOpts(
+             #     color="#fff",  # Light color for leaf labels if needed
+             #     position="right",
+             #     horizontal_align="right",
+             #     vertical_align="middle",
+             #     rotate=-90
+             # ),
+             )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(
+                title="Dendrogram",
+                subtitle="Hierarchical Clustering",
+                title_textstyle_opts=opts.TextStyleOpts(color="black"),
+            ),
+            tooltip_opts=opts.TooltipOpts(trigger="item", formatter="{b}")  # Customizing tooltip
+        )
+    )
+
+    # Save the dendrogram as an HTML file
+    dendrogram_html_filename = 'dendrogram_chart.html'
+    tree_chart.render(path=os.path.join('static', dendrogram_html_filename))
+
+    # Redirect to the page displaying the dendrogram
+    return render_template('dendrogram.html', dendrogram_html_filename=dendrogram_html_filename, filename=filename)
+
+
+def convert_to_dendrogram_json(Z, labels):
+    # Convert the linkage matrix into a tree structure.
+    tree = to_tree(Z, rd=False)
+
+    def count_leaves(node):
+        # Recursively count the leaves under a node
+        if node.is_leaf():
+            return 1
+        return count_leaves(node.left) + count_leaves(node.right)
+
+    # Recursive function to build the JSON structure
+    def build_json(node):
+        if node.is_leaf():
+            # For leaf nodes, use the provided labels
+            return {"name": labels[node.id]}
+        else:
+            # For internal nodes, generate a name that includes the cluster size
+            size = count_leaves(node)
+            name = f"Cluster of {size}"
+            # Recursively build the JSON for children
+            return {
+                "name": name,
+                "children": [build_json(node.left), build_json(node.right)]
+            }
+
+    # Build and return the JSON structure
+    return build_json(tree)
 
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
