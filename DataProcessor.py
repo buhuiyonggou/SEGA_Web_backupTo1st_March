@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler
-from GraphSAGE import GraphSAGE
+from graphSAGE import GraphSAGE
 
 class GraphSAGEProcessor:
     def __init__(self, nodes_folder, edges_folder = None):
