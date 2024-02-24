@@ -11,6 +11,7 @@ matplotlib.use('agg')
 
 app = Flask(__name__)
 
+# hello
 # 配置上传文件夹和允许上传的文件类型
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'csv', 'xlsx'}

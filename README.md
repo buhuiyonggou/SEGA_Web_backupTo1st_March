@@ -4,3 +4,5 @@ csv: Adjacent List (Source-Target-Weight)
 xlsx: Adjacent Matrix (Cell Value=Weight)
 
 pip install pandas openpyxl
+pip install pyvis
+pip install pyecharts

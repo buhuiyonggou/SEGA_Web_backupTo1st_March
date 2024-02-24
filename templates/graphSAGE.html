@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GraphSAGE Processing</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        padding-top: 20px;
+        background-color: #f8f9fa;
+      }
+      .container {
+        max-width: 600px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Roboto", sans-serif;
+        color: #007bff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        letter-spacing: 1.5px;
+        word-spacing: 3px;
+        text-align: center;
+      }
+      .form-control,
+      .btn {
+        margin-top: 10px;
+      }
+      .legend {
+        margin-top: 20px;
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        color: #495057;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>GraphSAGE Document Processing</h1>
+      <form id="fileUploadForm" enctype="multipart/form-data" class="mt-4">
+        <div class="form-group">
+          <input
+            type="file"
+            class="form-control-file"
+            id="employeeFile"
+            name="employeeFile"
+            required
+          />
+          <label for="employeeFile">Employee Document (Required)</label>
+        </div>
+        <div class="form-group">
+          <input
+            type="file"
+            class="form-control-file"
+            id="relationshipFile"
+            name="relationshipFile"
+          />
+          <label for="relationshipFile">Relationship File (Optional)</label>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="confirmUpload()">
+          Confirm Upload
+        </button>
+        <button type="button" class="btn btn-danger" onclick="cancelUpload()">
+          Cancel Upload
+        </button>
+      </form>
+      <div id="processMessage" class="legend" style="display: none">
+        Processing...
+      </div>
+      <button
+        id="downloadButton"
+        class="btn btn-success"
+        style="display: none"
+        onclick="downloadProcessedFile()"
+      >
+        Download Processed CSV
+      </button>
+      <button
+        id="goVisualizationDataUpload"
+        class="btn btn-info mt-3"
+        onclick="window.location.href='/upload_to_vis'"
+      >
+        Go to Analyze
+      </button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      // Implement the JavaScript functions here as per your functionality requirements
+      function confirmUpload() {
+        var employeeFile = document.getElementById("employeeFile").files[0];
+        var relationshipFile =
+          document.getElementById("relationshipFile").files[0];
+        if (!employeeFile) {
+          alert("Please upload the employee document");
+          return;
+        }
+        var formData = new FormData();
+        formData.append("employeeFile", employeeFile);
+        if (relationshipFile) {
+          formData.append("relationshipFile", relationshipFile);
+        }
+        document.getElementById("fileUploadForm").style.display = "none";
+        document.getElementById("processMessage").style.display = "block";
+        $.ajax({
+          url: "process.php",
+          type: "POST",
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function (response) {
+            document.getElementById("processMessage").style.display = "none";
+            document.getElementById("downloadButton").style.display = "block";
+          },
+        });
+      }
+
+      function cancelUpload() {
+        document.getElementById("fileUploadForm").reset();
+      }
+
+      function downloadProcessedFile() {
+        window.location.href = "download.php";
+      }
+    </script>
+  </body>
+</html>

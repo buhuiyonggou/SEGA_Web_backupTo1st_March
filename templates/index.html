@@ -2,40 +2,135 @@
 <html>
 <head>
     <title>Network Graph</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for styling -->
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+        .container {
+            padding-top: 20px;
+        }
+        .alert-message {
+            color: red;
+        }
+        .legend {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .find-path-form {
+            margin-top: 20px;
+        }
+        .path-result {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Centrality and Community detection</h1>
-    <!-- 显示闪现消息 -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div style="color: red;">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    <!-- 显示图像 -->
-    <img src="data:image/png;base64,{{ plot_url }}">
-    <br>
-    <a href="{{ url_for('upload_file') }}">Upload another file</a>
+    <div class="container">
+        <h1>Centrality and Community Detection</h1>
 
-    <!-- Print filename for debugging -->
-    <p>Current Filename: {{ filename }}</p>
+        <!-- Display flash messages -->
+{#        {% with messages = get_flashed_messages() %}#}
+{#          {% if messages %}#}
+{#            {% for message in messages %}#}
+{#              <div class="alert-message">{{ message }}</div>#}
+{#            {% endfor %}#}
+{#          {% endif %}#}
+{#        {% endwith %}#}
 
-    <!-- 添加表单以允许用户输入要删除的节点ID -->
-    <h2>Delete a node and its edges</h2>
-    <form action="{{ url_for('delete_node', filename=filename) }}" method="post" onsubmit="disableButtonsAndShowWaitMessage()">
-        <label for="nodeId">Enter the ID of the node to delete:</label>
-        <input type="text" id="nodeId" name="nodeId" required>
-        <input type="submit" value="Delete Node">
-    </form>
+        <!-- Modal for operation guide -->
+        <div class="modal fade" id="operationGuideModal" tabindex="-1" aria-labelledby="operationGuideModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="operationGuideModalLabel">Operation Guide</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        1. If you want to edit (delete or add) nodes or edges, please enable "Manipulation".<br>
+                        2. If you want to adjust physical effects, please enable "Physics".<br>
+                        3. Loading might need some time for large datasets.<br>
+                        Have fun! :)
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">Got it!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <script type="text/javascript">
-        function disableButtonsAndShowWaitMessage() {
-            var submitButtons = document.querySelectorAll('input[type="submit"], input[type="button"]');
-            for (var i = 0; i < submitButtons.length; i++) {
-                submitButtons[i].value = 'Please wait...';
-                submitButtons[i].disabled = true;
-            }
+        <!-- Interactive graph iframe -->
+        {% if graph_html_path %}
+            <iframe src="{{ url_for('static', filename=graph_html_path.split('/')[-1]) }}" height="835" width="100%"></iframe>
+        {% else %}
+            <p>No graph to display.</p>
+        {% endif %}
+
+        <!-- Legend explaining node color and size -->
+        <div class="legend">
+            <p>Node color = Community structure by {{ community_algo }}</p>
+            <p>Node size = Centrality by {{ centrality_algo }}</p>
+        </div>
+
+        <!-- Form for finding shortest path -->
+        <div class="find-path-form">
+            <h2>Find Shortest Path</h2>
+            <label for="nodeStart">Start Node:</label>
+            <input type="text" id="nodeStart" name="nodeStart" required>
+            <label for="nodeEnd">End Node:</label>
+            <input type="text" id="nodeEnd" name="nodeEnd" required>
+            <button onclick="findShortestPath()" class="btn btn-primary">Find Path</button>
+        </div>
+
+        <!-- Container to display path results -->
+        <div id="pathResult" class="path-result"></div>
+
+        <br>
+
+        <!-- Link to upload another file -->
+        <a href="{{ url_for('upload_file') }}" class="btn btn-secondary">Upload Another File</a>
+
+        <!-- Current Filename for debugging -->
+        <p>Current Filename: {{ filename }}</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#operationGuideModal').modal('show');
+        });
+
+        function findShortestPath() {
+            var nodeStart = document.getElementById('nodeStart').value;
+            var nodeEnd = document.getElementById('nodeEnd').value;
+            var filename = "{{ filename }}";
+            $.ajax({
+                url: '/find_shortest_path',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 'filename': filename, 'nodeStart': nodeStart, 'nodeEnd': nodeEnd }),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.error) {
+                        document.getElementById('pathResult').innerHTML = '<p class="alert alert-danger">' + response.error + '</p>';
+                    } else {
+                        document.getElementById('pathResult').innerHTML = '<iframe src="' + response.graph_html_path + '" height="300" width="100%"></iframe>';
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                    document.getElementById('pathResult').innerHTML = '<p class="alert alert-danger">An error occurred while processing your request.</p>';
+                }
+            });
         }
     </script>
 </body>

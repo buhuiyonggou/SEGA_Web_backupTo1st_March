@@ -1,13 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Upload CSV File</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Network Data</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+        }
+        .container {
+            max-width: 600px;
+        }
+        h1 {
+            font-family: 'Roboto', sans-serif;
+            font-size: 32px; /* 增加字体大小 */
+            color: #007bff; /* 改变字体颜色 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2); /* 增加文字阴影 */
+            letter-spacing: 1.5px; /* 增加字母间距 */
+            word-spacing: 3px; /* 增加文字间距 */
+            text-align: center; /* 居中对齐 */
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload csv or xlsx file</h1>
-    <form action="" method=post enctype=multipart/form-data>
-        <input type=file name=file>
-        <input type=submit value="Upload">
-    </form>
+    <div class="container">
+        <h1 class="mb-4 text-center">SociAl: Social Network Analysis and Visualization</h1>
+        <h2 class="mb-4 text-center">Upload Network Data</h2>
+        <div class="card">
+            <div class="card-body">
+                <form action="" method="post" enctype="multipart/form-data" class="d-flex flex-column align-items-center">
+                    <div class="form-group">
+                        <input type="file" name="file" class="form-control-file">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
