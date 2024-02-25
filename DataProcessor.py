@@ -26,7 +26,7 @@ class GraphSAGEProcessor:
         self.NODE_FEATURES = {
             'title': ['title', 'job_title', 'position','job_level'],
             'nationality': ['nationality', 'citizen', 'citizenship'],
-            'region': ['region', 'district', 'branch', 'area'],
+            'region': ['region', 'district', 'branch', 'area','location'],
             'education':['education', 'degree', 'graduate'],
             'salary': ['salary', 'sal'],
             'marriage_status': ['marriage_status', 'marital_status', 'marrage_status'],
@@ -135,13 +135,14 @@ class GraphSAGEProcessor:
                         edges.append([i, j])
 
     # if edges are given by user, relationship_data is not None, mapping current users to edges
-    def egdes_generator(self, hr_data, given_edges = None):
+    def egdes_generator(self, hr_data, edge_filepath = None):
         edges = []
         mapping_df = self.create_index_id_name_mapping(hr_data)
 
-        if given_edges is not None:
+        if edge_filepath:
             # mapping name to index and generating edges
-            for _, row in given_edges.iterrows():
+            hr_edge = self.fetch_data_from_user(edge_filepath)
+            for _, row in hr_edge.iterrows():
                 source_id = row['source']
                 target_id = row['target']
                 source_index = mapping_df[mapping_df['id'] == source_id].index.item()
@@ -153,11 +154,11 @@ class GraphSAGEProcessor:
             if 'sub-depart' in hr_data.columns and hr_data['sub-depart'].notnull().any():
                 for dept in hr_data['sub-depart'].unique():
                     dept_indices = hr_data[hr_data['sub-depart'] == dept].index.tolist()
-                    self.manage_edge_probability(edges, dept_indices, sub_dept_info=True)
+                    self.manage_edge_probability(edges, hr_data,dept_indices, sub_dept_info=True)
             else:
                 for dept in hr_data['department'].unique():
                     dept_indices = hr_data[hr_data['department'] == dept].index.tolist()
-                    self.manage_edge_probability(edges, dept_indices, sub_dept_info=False)
+                    self.manage_edge_probability(edges, hr_data, dept_indices, sub_dept_info=False)
         return edges
 
     def edge_index_generator(self,edges):
@@ -199,8 +200,8 @@ class GraphSAGEProcessor:
             loss = ((out[data.edge_index[0]] - out[data.edge_index[1]]) ** 2).mean()
             loss.backward()
             optimizer.step()
-            if epoch % 10 == 0:
-                print(f'Epoch {epoch + 10}, Loss: {loss.item()}')
+            # if epoch % 10 == 0:
+            #     print(f'Epoch {epoch + 10}, Loss: {loss.item()}')
 
         # Strategy: Scale and Normalize the Weights
         with torch.no_grad():
@@ -226,7 +227,7 @@ class GraphSAGEProcessor:
         edges_with_weights['weight'] = scaled_weights
 
         # Use id to map names
-        edges_with_weights['source'] = edges_with_weights['source'].map(index_to_name_mapping)
-        edges_with_weights['target'] = edges_with_weights['target'].map(index_to_name_mapping)
+        edges_with_weights['source'] = edges_with_weights['source'].apply(lambda x: index_to_name_mapping.loc[x, 'name'])
+        edges_with_weights['target'] = edges_with_weights['target'].apply(lambda x: index_to_name_mapping.loc[x, 'name'])
 
         return edges_with_weights
