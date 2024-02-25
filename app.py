@@ -71,50 +71,22 @@ def load_graph_data(filepath, file_extension):
         flash(str(e))  # Display the error message to the user
         return None, None  # Return None values to indicate failure
 
-def data_processor(processor, node_filepath, edge_filepath = None):
-    hr_data = processor.fetch_data_from_user(node_filepath)
-    hr_edge = processor.fetch_data_from_user(edge_filepath)
+def get_data_with_weight(processor, feature_index, edge_index, index_to_name_mapping):
     
-    if hr_data:
-        # align name of columns 
-        hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
-        # store index map
-        index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
-        # target embedding attributes for this instance, used for creating node_index
-        attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
-        # get features with number
-        features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
-        feature_index = processor.feature_index_generator(features)
-        
-        # generate edges
-        if hr_edge:
-            edges = processor.egdes_generator(hr_data, hr_edge)
-        else:
-            edges = processor.egdes_generator(hr_data)
-        edge_index = processor.edge_index_generator(edges)
-        
-        message = processor.check_for_nan(hr_data)
-        flash(message)
-        # return indices, the mapping record, and the message
-        return (feature_index, edge_index, index_to_name_mapping, message)
-
-def get_data_with_weight(processor, process_result):
-    feature_index = process_result[0]
-    edge_index = process_result[1]
-    index_to_name_mapping = process_result[2]
-    message = process_result[3]
+    scaled_weights = processor.model_training(feature_index, edge_index)
     
-    scaled_weights = processor.model_training(feature_index, feature_index)
-    if scaled_weights:
-        processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
-    
+    # if scaled_weights.size > 0:
     edges_with_weights = processor.data_reshape(scaled_weights, edge_index, index_to_name_mapping)
     
     # Save the DataFrame to a CSV file
-    output_path = '/'+ UPLOAD_FOLDER + '/edges_with_weights.csv'
-    edges_with_weights.to_csv(output_path, index=False)
-    message = "Successful!"
-    return message
+    try: 
+        output_path = UPLOAD_FOLDER + '/weighted_graph.csv'
+        edges_with_weights.to_csv(output_path, index=False)
+        message = "Successful!"
+    except Exception as message:
+        flash(f'Error: {str(message)}')
+    finally:
+        flash(message) 
         
 @app.route('/')
 def home():
@@ -145,33 +117,52 @@ def data_process():
     try:
         node_filepath = session.get('node_filepath')
         edge_filepath = session.get('edge_filepath')
+
         if node_filepath:
             if edge_filepath is None:
                 flash("upload successful. Upload relationship can increase model accuracy!")
             else:
                 flash("upload successful!")
-        if node_filepath:
-            processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
+
+        processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
             
-            hr_data = processor.fetch_data_from_user(node_filepath)
-            hr_edge = processor.fetch_data_from_user(edge_filepath)
+        hr_data = processor.fetch_data_from_user(node_filepath)
             
-            if not hr_data.empty:
-                hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
-                # store index map
-                index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
-                # align name of columns 
-                # # target embedding attributes for this instance, used for creating node_index
-                # attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
-                # # get features with number
-                # features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
-                # feature_index = processor.feature_index_generator(features)
-        print(index_to_name_mapping)
-            # processed = data_processor(processor, node_filepath, edge_filepath)
-            # get_data_with_weight(processor, processed)
-            # data_processor(processor, node_filepath, edge_filepath)
+        if hr_data.empty:
+            flash("Sorry, document data cannot be found.")
+        
+        # process features
+        hr_data.columns = processor.rename_columns_to_standard(hr_data, processor.COLUMN_ALIGNMENT)
+        
+        # store index map
+        index_to_name_mapping = processor.create_index_id_name_mapping(hr_data)
+        
+        # align name of columns 
+        # target embedding attributes for this instance, used for creating node_index
+        attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
+        # get features with number
+        features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
+        feature_index = processor.feature_index_generator(features)
+        
+        # process edges      
+        if edge_filepath:
+            edges = processor.egdes_generator(hr_data, edge_filepath)
+        else:
+            edges = processor.egdes_generator(hr_data)
+            
+        edge_index = processor.edge_index_generator(edges)
+        # check if nan value exists
+        processor.nanCheck(hr_data,feature_index)
+        
+        get_data_with_weight(processor, feature_index, edge_index, index_to_name_mapping)
+        
     except Exception as e:
         flash(f'Error: {str(e)}')
+    finally:
+        # Clear the session after processing is complete
+        session.pop('node_filepath', None)
+        session.pop('edge_filepath', None)
+        
     return render_template('dataProcess.html')
 
 @app.route('/analyze')
