@@ -82,7 +82,7 @@ def get_data_with_weight(processor, feature_index, edge_index, index_to_name_map
     try: 
         output_path = UPLOAD_FOLDER + '/weighted_graph.csv'
         edges_with_weights.to_csv(output_path, index=False)
-        message = "Successful!"
+        message = "Process Successful!"
     except Exception as message:
         flash(f'Error: {str(message)}')
     finally:
@@ -96,11 +96,11 @@ def home():
 def upload_user_data():
     if request.method == 'POST':
         node_file = request.files.get('employeeFile')
-        if node_file:
+        if node_file and allowed_file(node_file.filename):
             node_filename = secure_filename(node_file.filename)
             
         edge_file = request.files.get('relationshipFile')
-        if edge_file:
+        if edge_file and allowed_file(edge_file.filename):
             edge_filename = secure_filename(edge_file.filename)
             
         # Save files and process
@@ -113,7 +113,6 @@ def upload_user_data():
 
         return redirect(url_for('data_process'))
 
-
 @app.route('/data_process')
 def data_process():
     try:
@@ -121,10 +120,9 @@ def data_process():
         edge_filepath = session.get('edge_filepath')
 
         if node_filepath:
-            if edge_filepath is None:
-                flash("upload successful. Upload relationship can increase model accuracy!")
-            else:
-                flash("upload successful!")
+            flash("upload successful!")
+        else:
+            flash("Sorry, there is something wrong with uploading...")
 
         processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
             
@@ -164,7 +162,6 @@ def data_process():
         # Clear the session after processing is complete
         session.pop('node_filepath', None)
         session.pop('edge_filepath', None)
-        
     return render_template('dataProcess.html')
 
 @app.route('/analyze')
@@ -380,31 +377,3 @@ if __name__ == '__main__':
         os.makedirs(RAW_DATA_FOLDER)
         
     app.run(debug=True)
-    # app.run(host='0.0.0.0', debug=True)
-
-# @app.route('/delete_node/<filename>', methods=['POST'])
-# def delete_node(filename):
-#     node_id = request.form['nodeId']  # 获取用户输入的节点ID
-#
-#     filepath = os.path.join(UPLOAD_FOLDER, filename)
-#     _, file_extension = os.path.splitext(filename)
-#
-#     _, G = load_graph_data(filepath, file_extension)
-#
-#     if node_id in G:
-#         G.remove_node(node_id)
-#         flash(f"Node {node_id} deleted.")
-#     else:
-#         flash(f"Node {node_id} not found.")
-#         return redirect(url_for('network_graph', filename=filename))
-#
-#     # remove_low_degree_nodes(G)
-#     centrality, community_map = compute_centrality_and_communities(G)
-#
-#     # fig, ax = draw_graph(G, centrality, community_map, title="PageRank and Louvain")
-#     # plot_url = save_fig_to_base64(fig)
-#     #
-#     # return render_template('index.html', plot_url=plot_url, filename=filename)
-#     graph_html_path = draw_graph_with_pyvis(G, centrality, community_map)
-#
-#     return render_template('index.html', graph_html_path=graph_html_path, filename=filename)

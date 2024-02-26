@@ -144,6 +144,18 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+      function validateFileType(inputField) {
+        const file = document.getElementById(inputField).files[0];
+        const validTypes = [
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "text/csv",
+        ];
+        if (file && !validTypes.includes(file.type)) {
+          alert("Invalid file type. Please upload a .xlsx or .csv file.");
+          document.getElementById(inputField).value = ""; // Reset the input
+        }
+      }
+
       function disableInputField(inputField) {
         document.getElementById(inputField).classList.add("disabled-input");
       }
@@ -164,6 +176,15 @@
       function uploadFile() {
         showLoading();
       }
+
+      document.getElementById("employeeFile").onchange = function () {
+        validateFileType("employeeFile");
+        disableInputField("employeeFile");
+      };
+      document.getElementById("relationshipFile").onchange = function () {
+        validateFileType("relationshipFile");
+        disableInputField("relationshipFile");
+      };
     </script>
   </body>
 </html>
