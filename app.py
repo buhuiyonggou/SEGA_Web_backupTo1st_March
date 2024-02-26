@@ -110,7 +110,9 @@ def upload_user_data():
         if edge_file:
             session['edge_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
             edge_file.save(session['edge_filepath'])
+
         return redirect(url_for('data_process'))
+
 
 @app.route('/data_process')
 def data_process():
