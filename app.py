@@ -111,6 +111,13 @@ def upload_user_data():
             session['edge_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
             edge_file.save(session['edge_filepath'])
 
+        return redirect(url_for('confirm_edge_upload'))
+
+@app.route('/confirm_edge_upload')
+def confirm_edge_upload():
+    if 'node_filepath' in session and 'edge_filepath' not in session:
+        return render_template('confirm_edge_upload.html') 
+    else:
         return redirect(url_for('data_process'))
 
 @app.route('/data_process')
