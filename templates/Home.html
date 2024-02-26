@@ -65,13 +65,11 @@
         method="post"
         enctype="multipart/form-data"
       >
-        <div
-          class="form-group"
-          style="margin-top: 20px; marign-bottom: 30px; margin-left: 30%"
-        >
+        <div class="form-group text-center">
           <input
             type="file"
             class="form-control-file"
+            style="margin-top: 20px; marign-bottom: 30px; margin-left: 30%"
             id="employeeFile"
             name="employeeFile"
             onchange="disableInputField('employeeFile')"
@@ -80,19 +78,32 @@
           <label for="employeeFile"
             >Employee Document <i class="fas fa-asterisk required-icon"></i
           ></label>
+          <small id="employeeFileHelp" class="form-text text-muted"
+            ><p>
+              Please make sure your file contains column "<strong>id</strong>",
+              "<strong>name</strong>"
+            </p></small
+          >
         </div>
-        <div
-          class="form-group"
-          style="margin-top: 20px; marign-bottom: 30px; margin-left: 30%"
-        >
+        <div class="form-group text-center">
           <input
             type="file"
             class="form-control-file"
+            style="margin-top: 20px; marign-bottom: 30px; margin-left: 30%"
             id="relationshipFile"
             name="relationshipFile"
             onchange="disableInputField('relationshipFile')"
           />
           <label for="relationshipFile">Relationship File </label>
+          <small id="relationshipFileHelp" class="text-muted">
+            <p class="">
+              Please make sure your file contains column
+              "<strong>source</strong>", "<strong>target</strong>",
+            </p>
+            <p class="mt-n3">
+              and "<strong>a number representing relationship</strong>"
+            </p></small
+          >
         </div>
 
         <div id="loadingArea" style="display: none" class="text-center">
@@ -125,6 +136,9 @@
           </button>
         </div>
       </form>
+      <small id="CopyRight" class="form-text text-muted text-center mt-4">
+        @CopyRight: Yang Li, Yucheng Wang, Chenfei Zhu, Northeastern University
+      </small>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
