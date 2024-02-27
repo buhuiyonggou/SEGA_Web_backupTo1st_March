@@ -23,6 +23,7 @@
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
       }
       h1,
       h2,
@@ -101,6 +102,9 @@
     <script>
       function showDownloadButton() {
         document.getElementById("downloadButton").style.display = "block";
+      }
+      function downloadProcessedFile() {
+        window.location.href = "/download_processed_file";
       }
     </script>
   </body>
