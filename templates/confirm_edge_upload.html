@@ -12,6 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <link href="/static/styles.css" rel="stylesheet" />
     <style>
       body {
         font-family: "Roboto", sans-serif;
@@ -62,25 +63,27 @@
     </style>
   </head>
   <body>
-    <div class="container text-center text-warning">
-      <h2>Edge File Not Found</h2>
-      <p class="highlighted">
-        Would you like to continue without uploading the edge file?
-      </p>
-      <p id="noneEdgeNotification" class="form-text text-danger">
-        Adding your relationship network may improve efficiency and accuracy!
-      </p>
-      <div style="margin-top: 40px">
-        <a
-          href="{{ url_for('data_process') }}"
-          class="btn btn-custom mr-4"
-          style="width: 130px"
-          onclick="continueLoading()"
-          >Continue</a
-        >
-        <a href="{{ url_for('home') }}" class="btn btn-secondary"
-          >Return to Home</a
-        >
+    <div class="container">
+      <div class="container text-center text-warning">
+        <h2>Edge File Not Found</h2>
+        <p class="highlighted">
+          Would you like to continue without uploading the edge file?
+        </p>
+        <p id="noneEdgeNotification" class="form-text text-danger">
+          Adding your relationship network may improve efficiency and accuracy!
+        </p>
+        <div style="margin-top: 40px">
+          <a
+            href="{{ url_for('data_process') }}"
+            class="btn btn-custom mr-4"
+            style="width: 130px"
+            onclick="continueLoading()"
+            >Continue</a
+          >
+          <a href="{{ url_for('home') }}" class="btn btn-secondary"
+            >Return to Home</a
+          >
+        </div>
       </div>
     </div>
 

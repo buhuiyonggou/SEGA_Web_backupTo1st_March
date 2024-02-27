@@ -1,0 +1,13 @@
+.container {
+  background: rgba(255, 255, 255, 0.6);
+  margin-top: 40px
+}
+
+body {
+  padding-top: 20px;
+  background-color: #f8f9fa;
+  background-image: url('background-dark.jpg');
+  background-size: cover; 
+  background-position: center; 
+  background-attachment: fixed; 
+}  
