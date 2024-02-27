@@ -82,7 +82,7 @@ def get_data_with_weight(processor, feature_index, edge_index, index_to_name_map
     try: 
         output_path = UPLOAD_FOLDER + '/weighted_graph.csv'
         edges_with_weights.to_csv(output_path, index=False)
-        message = "Process Successful!"
+        message = "Process Status: Congragulations! You data has successfully processed."
     except Exception as message:
         flash(f'Error: {str(message)}')
     finally:
@@ -107,6 +107,7 @@ def upload_user_data():
         if node_file:
             session['node_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(node_file.filename))
             node_file.save(session['node_filepath'])
+            session['upload_success'] = True
         if edge_file:
             session['edge_filepath'] = os.path.join(app.config['RAW_DATA_FOLDER'], secure_filename(edge_file.filename))
             edge_file.save(session['edge_filepath'])
@@ -116,7 +117,7 @@ def upload_user_data():
 @app.route('/confirm_edge_upload')
 def confirm_edge_upload():
     if 'node_filepath' in session and 'edge_filepath' not in session:
-        return render_template('confirm_edge_upload.html') 
+        return render_template('confirm_edge_upload.html', delay_redirect=True) 
     else:
         return redirect(url_for('data_process'))
 
@@ -127,9 +128,9 @@ def data_process():
         edge_filepath = session.get('edge_filepath')
 
         if node_filepath:
-            flash("upload successful!")
+            flash("Upload Status: upload successful!")
         else:
-            flash("Sorry, there is something wrong with uploading...")
+            flash("Upload Status: Sorry, there is something wrong with uploading...")
 
         processor = GraphSAGEProcessor(node_filepath, edge_filepath if edge_filepath else None)
             
@@ -162,14 +163,15 @@ def data_process():
         processor.nanCheck(hr_data,feature_index)
         
         get_data_with_weight(processor, feature_index, edge_index, index_to_name_mapping)
-        
+        session['process_success'] = True
     except Exception as e:
+        session['process_success'] = False
         flash(f'Error: {str(e)}')
     finally:
         # Clear the session after processing is complete
         session.pop('node_filepath', None)
         session.pop('edge_filepath', None)
-    return render_template('dataProcess.html')
+    return render_template('dataProcess.html', process_success=session.get('process_success', False))
 
 @app.route('/analyze')
 def analyze():

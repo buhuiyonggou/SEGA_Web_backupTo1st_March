@@ -55,6 +55,10 @@
       .form-text {
         margin-bottom: 20px;
       }
+      #noneEdgeNotification {
+        font-size: 14px;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -63,7 +67,7 @@
       <p class="highlighted">
         Would you like to continue without uploading the edge file?
       </p>
-      <p id="noneEdgeNotification" class="form-text text-danger fs-5">
+      <p id="noneEdgeNotification" class="form-text text-danger">
         Adding your relationship network may improve efficiency and accuracy!
       </p>
       <div style="margin-top: 40px">
@@ -88,5 +92,13 @@
         showLoading();
       }
     </script>
+
+    {% if delay_redirect %}
+    <script>
+      setTimeout(function () {
+        window.location.href = "{{ url_for('data_process') }}";
+      }, 1000);
+    </script>
+    {% endif %}
   </body>
 </html>
