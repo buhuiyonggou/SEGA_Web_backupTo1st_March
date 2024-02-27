@@ -20,7 +20,6 @@
       }
       .container {
         margin-top: 50px;
-        background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -63,27 +62,25 @@
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="container text-center text-warning">
-        <h2>Edge File Not Found</h2>
-        <p class="highlighted">
-          Would you like to continue without uploading the edge file?
-        </p>
-        <p id="noneEdgeNotification" class="form-text text-danger">
-          Adding your relationship network may improve efficiency and accuracy!
-        </p>
-        <div style="margin-top: 40px">
-          <a
-            href="{{ url_for('data_process') }}"
-            class="btn btn-custom mr-4"
-            style="width: 130px"
-            onclick="continueLoading()"
-            >Continue</a
-          >
-          <a href="{{ url_for('home') }}" class="btn btn-secondary"
-            >Return to Home</a
-          >
-        </div>
+    <div class="container text-center text-warning">
+      <h2>Edge File Not Found</h2>
+      <p class="highlighted">
+        Would you like to continue without uploading the edge file?
+      </p>
+      <p id="noneEdgeNotification" class="form-text text-danger">
+        Adding your relationship network may improve efficiency and accuracy!
+      </p>
+      <div style="margin-top: 40px">
+        <a
+          href="{{ url_for('data_process') }}"
+          class="btn btn-custom mr-4"
+          style="width: 130px"
+          onclick="continueLoading()"
+          >Continue</a
+        >
+        <a href="{{ url_for('home') }}" class="btn btn-secondary"
+          >Return to Home</a
+        >
       </div>
     </div>
 

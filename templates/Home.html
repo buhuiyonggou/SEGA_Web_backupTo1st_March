@@ -128,7 +128,12 @@
         </div>
 
         <div class="d-flex justify-content-around flex-wrap">
-          <button type="submit" class="btn btn-primary" onclick="uploadFile()">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            id="confirmUploadBtn"
+            disabled
+          >
             Confirm Upload
           </button>
           <button type="button" class="btn btn-danger" onclick="cancelUpload()">
@@ -196,6 +201,29 @@
       document.getElementById("relationshipFile").onchange = function () {
         validateFileType("relationshipFile");
         disableInputField("relationshipFile");
+      };
+
+      function updateUploadButtonState() {
+        const employeeFileInput = document.getElementById("employeeFile");
+        const relationshipFileInput =
+          document.getElementById("relationshipFile");
+        const confirmUploadBtn = document.getElementById("confirmUploadBtn");
+
+        // Check if any file is selected in either of the input fields
+        if (employeeFileInput.files.length > 0) {
+          confirmUploadBtn.disabled = false;
+        } else {
+          confirmUploadBtn.disabled = true;
+        }
+      }
+
+      document.getElementById("employeeFile").onchange = function () {
+        validateFileType("employeeFile");
+        updateUploadButtonState();
+      };
+      document.getElementById("relationshipFile").onchange = function () {
+        validateFileType("relationshipFile");
+        updateUploadButtonState();
       };
     </script>
   </body>
