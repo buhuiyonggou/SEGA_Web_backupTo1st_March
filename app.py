@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import networkx as nx
-from flask import Flask, session, render_template, request, redirect, flash, jsonify, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, flash, jsonify, redirect, url_for, send_file, current_app
 from werkzeug.utils import secure_filename
 from algorithms import calculate_centrality, detect_communities
 from graph_utils import draw_graph_with_pyvis, draw_shortest_path_graph, invert_weights
@@ -172,6 +172,17 @@ def data_process():
         session.pop('node_filepath', None)
         session.pop('edge_filepath', None)
     return render_template('dataProcess.html', process_success=session.get('process_success', False))
+
+@app.route('/download_processed_file')
+def download_processed_file():
+    # Construct an absolute path to the file
+    file_path = os.path.join(current_app.root_path, 'uploads', 'weighted_graph.csv')
+    try:
+        # Attempt to send the file
+        return send_file(file_path, as_attachment=True)
+    except FileNotFoundError:
+        # Handle the error if the file does not exist
+        return "File not found.", 404
 
 @app.route('/analyze')
 def analyze():

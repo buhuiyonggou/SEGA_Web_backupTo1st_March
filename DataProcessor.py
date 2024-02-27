@@ -3,6 +3,7 @@ import numpy as np
 from itertools import combinations
 import torch
 from torch_geometric.data import Data
+import torch.nn.functional as F
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import MinMaxScaler
@@ -184,29 +185,51 @@ class GraphSAGEProcessor:
            raise ValueError(f"NaN values detected in columns: {', '.join(nan_columns)}")
         return "No NaN values detected."
 
+    def contrastive_loss(self, out, edge_index, num_neg_samples=None):
+        # Positive samples: directly connected nodes
+        pos_loss = F.pairwise_distance(out[edge_index[0]], out[edge_index[1]]).pow(2).mean()
+
+        # Negative sampling: randomly select pairs of nodes that are not directly connected
+        num_nodes = out.size(0)
+        num_neg_samples = num_neg_samples or edge_index.size(1)  # Default to the same number of negative samples as positive
+        neg_edge_index = torch.randint(0, num_nodes, (2, num_neg_samples), dtype=torch.long, device=out.device)
+
+        # Compute loss for negative samples
+        neg_loss = F.relu(1 - F.pairwise_distance(out[neg_edge_index[0]], out[neg_edge_index[1]])).pow(2).mean()
+
+        # Combine positive and negative loss
+        loss = pos_loss + neg_loss
+        return loss
+    
+    
     def model_training(self, feature_index, edge_index):
         # Initialize the GraphSAGE model
         model = GraphSAGE(in_channels=feature_index.shape[1], hidden_channels=16, out_channels=8)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-        data = Data(feature_index=feature_index, edge_index=edge_index)
+        data = Data(x=feature_index, edge_index=edge_index)
 
         # Training loop
-        for epoch in range(150):  # Number of epochs
+        for epoch in range(200):  # Adjust the number of epochs as needed
             model.train()
             optimizer.zero_grad()
-            out = model(data.feature_index, data.edge_index)
-            # Example loss calculation; adjust according to your specific task
-            loss = ((out[data.edge_index[0]] - out[data.edge_index[1]]) ** 2).mean()
+            out = model(data.x, data.edge_index)
+            
+            # Use the contrastive loss function here
+            loss = self.contrastive_loss(out, data.edge_index)
+            
             loss.backward()
             optimizer.step()
-            # if epoch % 10 == 0:
-            #     print(f'Epoch {epoch + 10}, Loss: {loss.item()}')
 
-        # Strategy: Scale and Normalize the Weights
+            # if epoch % 10 == 0:
+            #     print(f'Epoch {epoch}, Loss: {loss.item()}')
+
+        # Generate embeddings for nodes without gradient calculations
+        model.eval()  # Switch to evaluation mode
         with torch.no_grad():
-            embeddings = model(feature_index, edge_index)
-            new_weights = torch.norm(embeddings[edge_index[0]] - embeddings[edge_index[1]], dim=1)
+            embeddings = model(data.x, data.edge_index)
+
+            new_weights = torch.norm(embeddings[data.edge_index[0]] - embeddings[data.edge_index[1]], dim=1)
 
         # Initialize the scaler
         scaler = MinMaxScaler()
