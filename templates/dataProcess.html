@@ -12,6 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap"
       rel="stylesheet"
     />
+    <link href="/static/styles.css" rel="stylesheet" />
     <style>
       body {
         padding-top: 20px;
@@ -19,7 +20,6 @@
       }
       .container {
         max-width: 600px;
-        background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -45,10 +45,31 @@
         border-radius: 5px;
         color: #495057;
       }
+      .btn {
+        display: in-line;
+        height: 50px;
+      }
+      .buttonsLayout {
+        display: flex;
+        justify-content: space-between;
+        flex-direction: row;
+        align-items: center;
+      }
+      .alert {
+        margin-top: 40px;
+        background-color: rgba(117, 147, 180, 0.5);
+        border: none;
+      }
     </style>
   </head>
   <body>
     <div class="container">
+      <h2>GraphSAGE Document Processing</h2>
+
+      <div id="processMessage" class="legend" style="display: none">
+        Processing...
+      </div>
+
       {% with messages = get_flashed_messages() %} {% if messages %}
       <div class="alert alert-info" role="alert">
         {% for message in messages %}
@@ -56,41 +77,30 @@
         {% endfor %}
       </div>
       {% endif %} {% endwith %}
-      <h1>GraphSAGE Document Processing</h1>
-
-      <div id="processMessage" class="legend" style="display: none">
-        Processing...
+      <div class="buttonsLayout">
+        <button id="downloadButton" class="btn btn-info mt-3" onclick="downloadProcessedFile()"
+        {% if not session.get('upload_success', False) or not session.get('process_success', False) %}disabled{% endif %}>
+    Download CSV
+</button>
+<button id="goVisualizationDataUpload" class="btn btn-success mt-3" onclick="window.location.href='/upload_to_vis'"
+        {% if not session.get('upload_success', False) or not session.get('process_success', False) %}disabled{% endif %}>
+    Go to Analyze
+</button>
+        <button
+          id="goHomePage"
+          class="btn btn-secondary mt-3"
+          onclick="window.location.href='/'"
+        >
+          Go Back to Upload
+        </button>
       </div>
-      <button
-        id="downloadButton"
-        class="btn btn-success"
-        style="display: none"
-        onclick="downloadProcessedFile()"
-      >
-        Download Processed CSV
-      </button>
-      <button
-        id="goVisualizationDataUpload"
-        class="btn btn-info mt-3"
-        onclick="window.location.href='/upload_to_vis'"
-      >
-        Go to Analyze
-      </button>
-      <button
-        id="goHomePage"
-        class="btn btn-info mt-3"
-        onclick="window.location.href='/'"
-      >
-        Go Back to Upload
-      </button>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-      // Implement the JavaScript functions here as per your functionality requirements
-      function downloadProcessedFile() {
-        window.location.href = "download.php";
+      function showDownloadButton() {
+        document.getElementById("downloadButton").style.display = "block";
       }
     </script>
   </body>

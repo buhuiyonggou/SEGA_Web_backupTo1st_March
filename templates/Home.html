@@ -16,6 +16,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
       rel="stylesheet"
     />
+    <link href="/static/styles.css" rel="stylesheet" />
     <style>
       body {
         padding-top: 20px;
@@ -23,11 +24,11 @@
       }
       .container {
         max-width: 600px;
-        background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin: auto; /* Center container on the page */
+        background: rgba(255, 255, 255, 0.8);
+        margin: auto;
       }
       h1,
       h2,
@@ -53,6 +54,12 @@
       .disabled-input {
         pointer-events: none;
         opacity: 0.5;
+      }
+      .goToAnalyze {
+        display: flex;
+        justify-content: right;
+        margin-left: 35px;
+        margin-right: 35px;
       }
     </style>
   </head>
@@ -121,7 +128,12 @@
         </div>
 
         <div class="d-flex justify-content-around flex-wrap">
-          <button type="submit" class="btn btn-primary" onclick="uploadFile()">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            id="confirmUploadBtn"
+            disabled
+          >
             Confirm Upload
           </button>
           <button type="button" class="btn btn-danger" onclick="cancelUpload()">
@@ -135,6 +147,7 @@
             Go to Analyze
           </button>
         </div>
+        <small class="goToAnalyze mt-n1 text-muted">Have files already?</small>
       </form>
       <small id="CopyRight" class="form-text text-muted text-center mt-4">
         @CopyRight: Yang Li, Yucheng Wang, Chenfei Zhu, Northeastern University
@@ -144,6 +157,22 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
+      function validateFileType(inputField) {
+        const file = document.getElementById(inputField).files[0];
+        const validTypes = [
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "text/csv",
+        ];
+        if (file && !validTypes.includes(file.type)) {
+          alert("Invalid file type. Please upload a .xlsx or .csv file.");
+          document.getElementById(inputField).value = ""; // Reset the input
+        }
+      }
+
+      function noneEdgeNotification() {
+        alert("Provide your edge may improve process efficiency and accuracy.");
+      }
+
       function disableInputField(inputField) {
         document.getElementById(inputField).classList.add("disabled-input");
       }
@@ -164,6 +193,38 @@
       function uploadFile() {
         showLoading();
       }
+
+      document.getElementById("employeeFile").onchange = function () {
+        validateFileType("employeeFile");
+        disableInputField("employeeFile");
+      };
+      document.getElementById("relationshipFile").onchange = function () {
+        validateFileType("relationshipFile");
+        disableInputField("relationshipFile");
+      };
+
+      function updateUploadButtonState() {
+        const employeeFileInput = document.getElementById("employeeFile");
+        const relationshipFileInput =
+          document.getElementById("relationshipFile");
+        const confirmUploadBtn = document.getElementById("confirmUploadBtn");
+
+        // Check if any file is selected in either of the input fields
+        if (employeeFileInput.files.length > 0) {
+          confirmUploadBtn.disabled = false;
+        } else {
+          confirmUploadBtn.disabled = true;
+        }
+      }
+
+      document.getElementById("employeeFile").onchange = function () {
+        validateFileType("employeeFile");
+        updateUploadButtonState();
+      };
+      document.getElementById("relationshipFile").onchange = function () {
+        validateFileType("relationshipFile");
+        updateUploadButtonState();
+      };
     </script>
   </body>
 </html>
