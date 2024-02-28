@@ -152,7 +152,6 @@ def data_process():
         
         # get features with number
         features = processor.features_generator(hr_data, node_features)
-        print(features)
         
         feature_index = processor.feature_index_generator(features)
         
@@ -176,6 +175,11 @@ def data_process():
         session.pop('node_filepath', None)
         session.pop('edge_filepath', None)
     return render_template('dataProcess.html', process_success=session.get('process_success', False))
+
+@app.route('/training_progress')
+def training_progress():
+    progress = session.get('training_progress', 'Not started')
+    return jsonify({'progress': progress})
 
 @app.route('/download_processed_file')
 def download_processed_file():
@@ -400,4 +404,4 @@ if __name__ == '__main__':
     if not os.path.exists(RAW_DATA_FOLDER):
         os.makedirs(RAW_DATA_FOLDER)
         
-    app.run(debug=True)
+    app.run(debug=True) 
