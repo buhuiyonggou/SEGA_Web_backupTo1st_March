@@ -147,16 +147,20 @@ def data_process():
         
         # align name of columns 
         # target embedding attributes for this instance, used for creating node_index
-        attri_group = processor.generate_attributes(processor.NODE_FEATURES, hr_data)
+        columns_to_exclude = ['id', 'name']
+        node_features = [col for col in hr_data.columns if col not in columns_to_exclude]
+        
         # get features with number
-        features = processor.features_generator(hr_data, processor.NODE_FEATURES, attri_group)
+        features = processor.features_generator(hr_data, node_features)
+        print(features)
+        
         feature_index = processor.feature_index_generator(features)
         
-        # process edges      
+        # process edges 
         if edge_filepath:
-            edges = processor.egdes_generator(hr_data, edge_filepath)
+            edges = processor.edges_generator(hr_data, edge_filepath)
         else:
-            edges = processor.egdes_generator(hr_data)
+            edges = processor.edges_generator(hr_data)
             
         edge_index = processor.edge_index_generator(edges)
         # check if nan value exists
