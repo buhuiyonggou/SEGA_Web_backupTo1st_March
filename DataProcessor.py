@@ -16,7 +16,7 @@ class GraphSAGEProcessor:
         
         self.CONNECT_AMONG_SUB_DEPART = 0.25
         self.CONNECT_AMONG_DEPARTMENT = 0.05
-        self.CONNECT_AMONG_ORGANZATION = 0.01
+        self.CONNECT_AMONG_ORGANIZATION= 0.01
         self.COLUMN_ALIGNMENT = {
             'id':['id','emp_id', 'employeeid'],
             'name': ['name', 'full_name', "employee_name", 'first_name'],
@@ -24,17 +24,7 @@ class GraphSAGEProcessor:
             'sub-depart':['sub-depart', 'sub-department', 'sub-sector','second-department'],
             'manager': ['manager', 'supervisor', 'manager_name','managername']
         }
-        self.NODE_FEATURES = {
-            'title': ['title', 'job_title', 'position','job_level'],
-            'nationality': ['nationality', 'citizen', 'citizenship'],
-            'region': ['region', 'district', 'branch', 'area','location'],
-            'education':['education', 'degree', 'graduate'],
-            'salary': ['salary', 'sal'],
-            'marriage_status': ['marriage_status', 'marital_status', 'marrage_status'],
-            'race': ['race', 'ethnicity'],
-            'gender': ['gender', 'sex'],
-            'employment_status': ['employment_status', 'job_status', 'employment']
-        }
+        self.NODE_FEATURES = []
 
     def load_data(self, file_path):
         if file_path.endswith('.csv'):
@@ -51,7 +41,7 @@ class GraphSAGEProcessor:
         if file_path is None:
             return
         hr_data = self.load_data(file_path)
-        hr_data.fillna("missing", inplace=True)
+        hr_data.fillna("Missing", inplace=True)
         
         return hr_data
 
@@ -79,42 +69,21 @@ class GraphSAGEProcessor:
         mapping_df = pd.DataFrame(index_to_id_name_mapping)
         return mapping_df
 
-    # Function to find the actual column name in the DataFrame based on expected variations
-    def find_actual_column_name(self, df, possible_names):
-        for actual_name in df.columns.str.lower():
-            if actual_name in possible_names:
-                return actual_name
-        return None
-
-    # Mapping from your standardized property names to actual column names in hr_data
-    def generate_attributes(self, attrs, hr_data): 
-        property_to_actual = []
-        # check if required columns for creating edges exists
-        for property_name, variations in attrs.items():
-            actual_name = self.find_actual_column_name(hr_data, variations)
-            if actual_name:
-                property_to_actual.append(actual_name)
-        return property_to_actual
-
     def preprocess_data(self, df, node_features):
-        # Compile a list of all relevant columns from node_features
-        relevant_columns = set([col for cols in node_features.values() for col in cols])
-
         # Initialize LabelEncoder and MinMaxScaler
         le = LabelEncoder()
         scaler = MinMaxScaler()
-
-        for column in relevant_columns:
-            # Check if the column exists in the DataFrame to avoid KeyError
-            if column in df.columns:
-                if df[column].dtype == 'object':
-                    # Apply LabelEncoder to categorical columns
-                    df[column] = le.fit_transform(df[column].astype(str))
-                else:
-                    # Apply MinMaxScaler to numerical columns
-                    scaler = MinMaxScaler()
-                    imputer = SimpleImputer(strategy='constant')
-                    df[column] = scaler.fit_transform(df[column].values.reshape(-1, 1))
+        imputer = SimpleImputer(strategy='mean')  
+        for column in node_features:
+            if df[column].dtype == 'object':
+                df[column] = le.fit_transform(df[column].astype(str))  # Convert categorical data to numerical
+            else:
+                # Reshape the column data to a 2D array for imputer and scaler
+                column_data_reshaped = df[column].values.reshape(-1, 1)  # Reshape data
+                # Apply imputer to the reshaped data
+                imputed_data = imputer.fit_transform(column_data_reshaped)
+                # Apply scaler to the imputed and reshaped data
+                df[column] = scaler.fit_transform(imputed_data)
 
         return df
 
@@ -135,8 +104,9 @@ class GraphSAGEProcessor:
                     if np.random.rand() < self.CONNECT_AMONG_DEPARTMENT:
                         edges.append([i, j])
 
+
     # if edges are given by user, relationship_data is not None, mapping current users to edges
-    def egdes_generator(self, hr_data, edge_filepath = None):
+    def edges_generator(self, hr_data, edge_filepath = None):
         edges = []
         mapping_df = self.create_index_id_name_mapping(hr_data)
 
@@ -166,12 +136,14 @@ class GraphSAGEProcessor:
         edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
         return edge_index
 
-    def features_generator(self, hr_data, node_features, property_to_actual):
+    def features_generator(self, hr_data, node_features):
         hr_data_parsed = self.preprocess_data(hr_data, node_features)
-        # Exclude 'id' and 'name' columns from features
-        feature_columns = [col for col in hr_data_parsed.columns if col in property_to_actual]
 
-        features_data = hr_data[feature_columns].values
+        # Exclude 'id' and 'name' columns from features
+        feature_columns = [col for col in hr_data.columns if col in node_features]
+
+        features_data = hr_data_parsed[feature_columns].values
+        
         return features_data
 
     def feature_index_generator(self, features):
