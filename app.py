@@ -15,8 +15,6 @@ from DataProcessor import GraphSAGEProcessor
 
 app = Flask(__name__)
 
-# hello
-# 配置上传文件夹和允许上传的文件类型
 # Configuration for the file upload folder and allowed file types
 UPLOAD_FOLDER = 'uploads'
 RAW_DATA_FOLDER = 'raw_data'
